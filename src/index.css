@@ -73,3 +73,35 @@ body {
 @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 .marquee-track { display: flex; width: max-content; animation: marquee 22s linear infinite; }
 .marquee-mask:hover .marquee-track { animation-play-state: paused; }
+
+/* ---------- Dark mode — portal only (scoped to .psportal) ---------- */
+html.dark { color-scheme: light dark; }
+html.dark .psportal { background-color: #0a1120; }
+
+.dark .psportal [class*="bg-white"]     { background-color: #0f1a2e !important; }
+.dark .psportal [class*="bg-ink-50"]    { background-color: #0c1526 !important; }
+.dark .psportal [class*="bg-ink-100"]   { background-color: #18243c !important; }
+.dark .psportal .bg-ink-900             { background-color: #0d1626 !important; }
+
+.dark .psportal [class*="text-ink-900"],
+.dark .psportal [class*="text-ink-800"],
+.dark .psportal [class*="text-ink-700"] { color: #e7edf6 !important; }
+.dark .psportal [class*="text-ink-600"],
+.dark .psportal [class*="text-ink-500"] { color: #9fb0c6 !important; }
+.dark .psportal [class*="text-ink-400"] { color: #6a7c95 !important; }
+
+.dark .psportal [class*="border-ink-100"],
+.dark .psportal [class*="border-ink-200"] { border-color: #26344c !important; }
+.dark .psportal [class*="divide-ink-100"] > :not([hidden]) ~ :not([hidden]) { border-color: #26344c !important; }
+.dark .psportal [class*="ring-ink-100"],
+.dark .psportal [class*="ring-ink-200"]   { --tw-ring-color: #26344c !important; }
+
+.dark .psportal [class*="bg-emerald-50"] { background-color: rgba(16,185,129,.12) !important; }
+.dark .psportal [class*="bg-amber-50"]   { background-color: rgba(245,158,11,.12) !important; }
+.dark .psportal [class*="bg-rose-50"]    { background-color: rgba(244,63,94,.12) !important; }
+.dark .psportal [class*="bg-brand-50"]   { background-color: rgba(37,99,235,.16) !important; }
+.dark .psportal [class*="ring-emerald-100"] { --tw-ring-color: rgba(16,185,129,.28) !important; }
+.dark .psportal [class*="ring-rose-100"]    { --tw-ring-color: rgba(244,63,94,.28) !important; }
+.dark .psportal [class*="ring-amber-100"]   { --tw-ring-color: rgba(245,158,11,.28) !important; }
+
+.dark .psportal input, .dark .psportal textarea, .dark .psportal select { color-scheme: dark; }
