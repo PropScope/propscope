@@ -73,3 +73,61 @@ body {
 @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 .marquee-track { display: flex; width: max-content; animation: marquee 22s linear infinite; }
 .marquee-mask:hover .marquee-track { animation-play-state: paused; }
+
+/* ---------- Dark mode — portal only (scoped to .psportal) ---------- */
+html.dark { color-scheme: light dark; }
+html.dark .psportal { background-color: #0a1120; }
+
+/* Surfaces */
+.dark .psportal .card,
+.dark .psportal .input,
+.dark .psportal .btn-secondary,
+.dark .psportal [class*="bg-white"] { background-color: #0f1a2e !important; }
+.dark .psportal [class*="bg-ink-50"]  { background-color: #0c1526 !important; }
+.dark .psportal [class*="bg-ink-100"] { background-color: #18243c !important; }
+.dark .psportal .bg-ink-900           { background-color: #0d1626 !important; }
+.dark .psportal .card, .dark .psportal .input { --tw-ring-color: #26344c !important; }
+
+/* Text */
+.dark .psportal [class*="text-ink-900"],
+.dark .psportal [class*="text-ink-800"],
+.dark .psportal [class*="text-ink-700"] { color: #e7edf6 !important; }
+.dark .psportal [class*="text-ink-600"],
+.dark .psportal [class*="text-ink-500"] { color: #9fb0c6 !important; }
+.dark .psportal [class*="text-ink-400"] { color: #6a7c95 !important; }
+.dark .psportal .label { color: #cbd5e1 !important; }
+.dark .psportal .btn-secondary { color: #e7edf6 !important; }
+.dark .psportal .btn-ghost { color: #9fb0c6 !important; }
+
+/* Accent text -> lighter so it reads on dark */
+.dark .psportal [class*="text-brand-700"],
+.dark .psportal [class*="text-brand-600"] { color: #93c5fd !important; }
+.dark .psportal [class*="text-emerald-600"],
+.dark .psportal [class*="text-emerald-700"],
+.dark .psportal [class*="text-emerald-800"] { color: #6ee7b7 !important; }
+.dark .psportal [class*="text-amber-600"],
+.dark .psportal [class*="text-amber-700"],
+.dark .psportal [class*="text-amber-800"] { color: #fcd34d !important; }
+.dark .psportal [class*="text-rose-600"],
+.dark .psportal [class*="text-rose-700"],
+.dark .psportal [class*="text-rose-800"] { color: #fca5b4 !important; }
+
+/* Borders / rings / dividers */
+.dark .psportal [class*="border-ink-100"],
+.dark .psportal [class*="border-ink-200"] { border-color: #26344c !important; }
+.dark .psportal [class*="divide-ink-"] > :not([hidden]) ~ :not([hidden]) { border-color: #24324a !important; }
+.dark .psportal [class*="ring-ink-100"],
+.dark .psportal [class*="ring-ink-200"]   { --tw-ring-color: #26344c !important; }
+
+/* Tinted panels & chips -> translucent dark */
+.dark .psportal [class*="bg-emerald-50"], .dark .psportal [class*="bg-emerald-100"] { background-color: rgba(16,185,129,.14) !important; }
+.dark .psportal [class*="bg-amber-50"],   .dark .psportal [class*="bg-amber-100"]   { background-color: rgba(245,158,11,.15) !important; }
+.dark .psportal [class*="bg-rose-50"],    .dark .psportal [class*="bg-rose-100"]    { background-color: rgba(244,63,94,.15) !important; }
+.dark .psportal [class*="bg-brand-50"],   .dark .psportal [class*="bg-brand-100"]   { background-color: rgba(59,130,246,.18) !important; }
+.dark .psportal [class*="ring-emerald-100"] { --tw-ring-color: rgba(16,185,129,.3) !important; }
+.dark .psportal [class*="ring-rose-100"]    { --tw-ring-color: rgba(244,63,94,.3) !important; }
+.dark .psportal [class*="ring-amber-100"]   { --tw-ring-color: rgba(245,158,11,.3) !important; }
+
+/* Inputs */
+.dark .psportal input, .dark .psportal textarea, .dark .psportal select { color-scheme: dark; }
+.dark .psportal input::placeholder, .dark .psportal textarea::placeholder { color: #64748b !important; }
