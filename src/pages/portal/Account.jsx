@@ -3,7 +3,6 @@ import { Check } from 'lucide-react'
 import PageHeader from '../../components/portal/PageHeader.jsx'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { dateFmt } from '../../lib/format.js'
-import ThemeToggle from '../../components/ui/ThemeToggle.jsx'
 
 export default function Account() {
   const { user } = useAuth()
@@ -47,16 +46,6 @@ export default function Account() {
             <p className="mt-3 font-semibold text-ink-900">{user?.name}</p>
             <p className="text-sm text-ink-500">{user?.email}</p>
             <p className="mt-2 text-xs text-ink-400">Member since {dateFmt(user?.memberSince)}</p>
-          </div>
-          <div className="card p-6">
-            <h3 className="font-semibold text-ink-900">Appearance</h3>
-            <div className="mt-4 flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-ink-800">Dark mode</p>
-                <p className="text-xs text-ink-400">Easier on the eyes at night</p>
-              </div>
-              <ThemeToggle className="ring-1 ring-ink-200" />
-            </div>
           </div>
           <div className="card p-6">
             <h3 className="font-semibold text-ink-900">Security</h3>

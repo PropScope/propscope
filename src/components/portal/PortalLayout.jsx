@@ -7,7 +7,6 @@ import {
 import Logo from '../ui/Logo.jsx'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { planById } from '../../lib/plans.js'
-import ThemeToggle from '../ui/ThemeToggle.jsx'
 
 const nav = [
   { to: '/app', label: 'Dashboard', icon: LayoutDashboard, end: true },
@@ -26,7 +25,7 @@ export default function PortalLayout() {
   const doLogout = () => { logout(); nav2('/') }
 
   return (
-    <div className="psportal min-h-screen bg-ink-50">
+    <div className="min-h-screen bg-ink-50">
       {/* Sidebar */}
       <aside className={`fixed inset-y-0 left-0 z-50 w-64 transform border-r border-ink-200 bg-white transition-transform lg:translate-x-0 ${open ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex h-16 items-center justify-between border-b border-ink-100 px-5">
@@ -75,7 +74,6 @@ export default function PortalLayout() {
                 <p className="text-xs text-ink-400 leading-tight">{user?.company}</p>
               </div>
             </div>
-            <ThemeToggle />
             <button onClick={doLogout} className="btn-ghost p-2" title="Log out"><LogOut size={18} /></button>
           </div>
         </header>
