@@ -31,8 +31,11 @@ function ScrollToTop() {
 }
 
 function RequireAuth({ children }) {
-  const { isAuthed } = useAuth()
+  const { isAuthed, loading } = useAuth()
   const location = useLocation()
+  if (loading) return (
+    <div className="grid min-h-screen place-items-center text-sm text-ink-400">Loading…</div>
+  )
   if (!isAuthed) return <Navigate to="/login" state={{ from: location }} replace />
   return children
 }
