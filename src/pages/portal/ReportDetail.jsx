@@ -13,6 +13,15 @@ import { usd, pct } from '../../lib/format.js'
 
 const riskTone = { Low: 'text-emerald-600 bg-emerald-50', Medium: 'text-amber-600 bg-amber-50', High: 'text-rose-600 bg-rose-50' }
 
+const VERDICT_BANNER = {
+  Strong:   { wrap: 'bg-emerald-50', icon: 'text-emerald-600', title: 'text-emerald-800', body: 'text-emerald-700', Icon: TrendingUp,
+    msg: 'the numbers support moving forward. Watch rehab scope — it is the biggest swing factor.' },
+  Moderate: { wrap: 'bg-amber-50', icon: 'text-amber-600', title: 'text-amber-800', body: 'text-amber-700', Icon: AlertTriangle,
+    msg: 'the margins are workable but leave little cushion. Tighten your rehab bids and re-verify comps before committing.' },
+  Thin:     { wrap: 'bg-rose-50', icon: 'text-rose-600', title: 'text-rose-800', body: 'text-rose-700', Icon: AlertTriangle,
+    msg: 'the spread is tight with little room for error. Proceed only on conservative numbers — otherwise pass.' },
+}
+
 export default function ReportDetail() {
   const { id } = useParams()
   const r = SAMPLE_REPORTS.find((x) => x.id === id)
@@ -40,6 +49,7 @@ export default function ReportDetail() {
   )
 
   const d = reportDetail(r)
+  const vb = VERDICT_BANNER[r.verdict] || VERDICT_BANNER.Strong
 
   return (
     <>
@@ -74,12 +84,12 @@ export default function ReportDetail() {
           </div>
         </div>
 
-        <div className="mt-5 flex items-start gap-3 rounded-xl bg-emerald-50 p-4">
-          <TrendingUp size={20} className="mt-0.5 shrink-0 text-emerald-600" />
+        <div className={`mt-5 flex items-start gap-3 rounded-xl ${vb.wrap} p-4`}>
+          <vb.Icon size={20} className={`mt-0.5 shrink-0 ${vb.icon}`} />
           <div>
-            <p className="font-semibold text-emerald-800">Verdict: {r.verdict} — best played as {d.strategies.sort((a,b)=>b.roi-a.roi)[0].name}</p>
-            <p className="mt-0.5 text-sm text-emerald-700">
-              At {usd(r.purchasePrice)} in with {usd(r.rehab)} rehab against a {usd(r.arv)} ARV, the numbers support moving forward. Watch rehab scope — it's the biggest swing factor.
+            <p className={`font-semibold ${vb.title}`}>Verdict: {r.verdict} — best played as {d.strategies.sort((a,b)=>b.roi-a.roi)[0].name}</p>
+            <p className={`mt-0.5 text-sm ${vb.body}`}>
+              At {usd(r.purchasePrice)} in with {usd(r.rehab)} rehab against a {usd(r.arv)} ARV, {vb.msg}
             </p>
           </div>
         </div>
