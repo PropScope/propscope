@@ -31,7 +31,7 @@ export default function PricingCards({ ctaTo = '/signup' }) {
             <p className="mt-1 text-xs text-ink-400">{plan.cadence}</p>
 
             <Link to={`${ctaTo}?plan=${plan.id}`}
-              className={`mt-6 btn-shine ${plan.highlight ? 'btn bg-brand-500 text-white hover:bg-brand-400' : 'btn-primary'} w-full`}>
+              className={`mt-6 btn-shine ${plan.highlight ? 'btn bg-emerald-500 text-white hover:bg-emerald-400' : 'btn-primary'} w-full`}>
               {plan.cta}
             </Link>
 
