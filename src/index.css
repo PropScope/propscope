@@ -1,0 +1,75 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: light; }
+
+html { scroll-behavior: smooth; }
+body {
+  @apply bg-white text-ink-900 antialiased font-sans;
+}
+
+@layer components {
+  .container-x { @apply mx-auto w-full max-w-7xl px-5 sm:px-8; }
+  .btn {
+    @apply relative inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold
+           transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/50 disabled:opacity-50;
+  }
+  .btn-primary { @apply btn bg-brand-600 text-white hover:bg-brand-700 shadow-sm hover:shadow-md hover:-translate-y-0.5; }
+  .btn-secondary { @apply btn bg-white text-ink-800 ring-1 ring-inset ring-ink-200 hover:bg-ink-50 hover:-translate-y-0.5; }
+  .btn-ghost { @apply btn text-ink-600 hover:bg-ink-100; }
+  .card { @apply rounded-2xl bg-white ring-1 ring-ink-200/70 shadow-card; }
+  .card-hover { @apply transition duration-200 hover:-translate-y-1 hover:shadow-lg hover:ring-brand-300; }
+  .input {
+    @apply w-full rounded-lg border-0 bg-white px-3.5 py-2.5 text-sm text-ink-900 shadow-sm
+           ring-1 ring-inset ring-ink-200 placeholder:text-ink-400
+           focus:ring-2 focus:ring-inset focus:ring-brand-500 outline-none;
+  }
+  .label { @apply block text-sm font-medium text-ink-700 mb-1.5; }
+  .badge { @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium; }
+  .eyebrow { @apply text-sm font-semibold uppercase tracking-wider text-brand-600; }
+
+  /* Gradient headline text */
+  .text-gradient {
+    @apply bg-gradient-to-r from-brand-700 via-brand-600 to-emerald-500 bg-clip-text text-transparent;
+  }
+
+  /* Shine sweep on primary CTAs */
+  .btn-shine::after {
+    content: '';
+    @apply pointer-events-none absolute inset-0 rounded-lg;
+    background: linear-gradient(110deg, transparent 30%, rgba(255,255,255,.35) 50%, transparent 70%);
+    transform: translateX(-120%);
+  }
+  .btn-shine:hover::after { animation: shine 0.9s ease; }
+}
+
+/* Scroll reveal */
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity .7s cubic-bezier(.2,.7,.2,1), transform .7s cubic-bezier(.2,.7,.2,1);
+  will-change: opacity, transform;
+}
+.reveal-in { opacity: 1; transform: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal { opacity: 1; transform: none; transition: none; }
+}
+
+@keyframes shine { to { transform: translateX(120%); } }
+
+@keyframes float-slow { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+.animate-float { animation: float-slow 5s ease-in-out infinite; }
+
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgba(33,63,102,.35); }
+  70% { box-shadow: 0 0 0 12px rgba(33,63,102,0); }
+  100% { box-shadow: 0 0 0 0 rgba(33,63,102,0); }
+}
+.animate-pulse-ring { animation: pulse-ring 2.4s infinite; }
+
+/* Marquee for trust strip */
+@keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.marquee-track { display: flex; width: max-content; animation: marquee 22s linear infinite; }
+.marquee-mask:hover .marquee-track { animation-play-state: paused; }

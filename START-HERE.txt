@@ -1,0 +1,27 @@
+DEALSIGHT — HOW TO RUN IT
+=========================
+
+You need Node.js installed first (one time):
+  -> Go to https://nodejs.org and install the "LTS" version.
+
+If you've never used Claude Code before (one time):
+  -> Open a terminal and run:  npm install -g @anthropic-ai/claude-code
+
+TO OPEN THIS PROJECT IN CLAUDE CODE:
+  1. Right-click this "propscope" folder -> "Open in Terminal"
+     (Windows 10: open the folder, click the address bar, type cmd, press Enter)
+  2. Type:  claude     and press Enter
+  3. Tell it:  "Run npm install, then npm run dev, and give me the URL."
+
+OR JUST RUN IT YOURSELF (no Claude Code needed):
+  In the terminal opened at this folder, run these two commands:
+     npm install
+     npm run dev
+  Then open the link it prints (usually http://localhost:5173) in your browser.
+
+LOGGING IN:
+  This is a demo build — ANY email and password will log you in.
+
+WHAT THIS IS:
+  Stage 1 = the website + portal you can click through.
+  The deal-analysis engine, real logins, and payments come in the next stage.
