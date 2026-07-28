@@ -50,6 +50,7 @@ export default function ReportDetail() {
 
   const d = reportDetail(r)
   const vb = VERDICT_BANNER[r.verdict] || VERDICT_BANNER.Strong
+  const mao = Math.round(r.arv * 0.7 - r.rehab)
 
   return (
     <>
@@ -206,6 +207,42 @@ export default function ReportDetail() {
           <span className="font-semibold text-ink-700">Total rehab estimate</span>
           <span className="text-lg font-bold text-ink-900">{usd(d.rehab.reduce((a, b) => a + b.cost, 0))}</span>
         </div>
+      </div>
+
+      {/* Seller Summary — plain-English, buyer-to-seller rationale */}
+      <div className="mt-6 card p-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h3 className="flex items-center gap-2 font-semibold text-ink-900"><FileText size={18} className="text-brand-600" /> Seller Summary — how we reached our offer</h3>
+          <button className="btn-secondary"><Download size={16} /> Seller PDF</button>
+        </div>
+        <p className="mt-1 text-sm text-ink-500">A plain-English page you can share with the seller — the offer, and the numbers behind it.</p>
+
+        <p className="mt-4 text-sm leading-relaxed text-ink-700">
+          Fully renovated, this home would be worth about <span className="font-semibold text-ink-900">{usd(r.arv)}</span>, based on
+          recent sales of similar nearby homes. In its current condition it needs an estimated
+          <span className="font-semibold text-ink-900"> {usd(r.rehab)}</span> in repairs and updates. After that work, holding and
+          closing costs, and a modest return, our offer comes to <span className="font-semibold text-emerald-700">{usd(mao)}</span>.
+        </p>
+
+        <div className="mt-5 grid gap-3 sm:grid-cols-3">
+          <div className="rounded-xl bg-ink-50 p-4"><p className="text-xs text-ink-400">After-repair value</p><p className="mt-1 font-bold text-ink-900">{usd(r.arv)}</p><p className="mt-0.5 text-xs text-ink-400">from recent comps</p></div>
+          <div className="rounded-xl bg-ink-50 p-4"><p className="text-xs text-ink-400">Estimated repairs</p><p className="mt-1 font-bold text-ink-900">{usd(r.rehab)}</p><p className="mt-0.5 text-xs text-ink-400">to reach that value</p></div>
+          <div className="rounded-xl bg-emerald-50 p-4"><p className="text-xs text-emerald-700">Our offer</p><p className="mt-1 font-bold text-emerald-800">{usd(mao)}</p><p className="mt-0.5 text-xs text-emerald-600">fair &amp; evidence-based</p></div>
+        </div>
+
+        <div className="mt-5">
+          <p className="mb-2 text-sm font-semibold text-ink-700">Comparable sales this is based on</p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {d.comps.map((c) => (
+              <div key={c.address} className="flex items-center justify-between rounded-lg ring-1 ring-ink-100 px-3 py-2 text-sm">
+                <span className="text-ink-600">{c.address}</span>
+                <span className="font-semibold text-ink-900">{usd(c.sold)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <p className="mt-4 text-xs text-ink-400">Figures are estimates to support discussion — not a formal appraisal.</p>
       </div>
 
       {tier?.id === 'deal-intelligence' && (
