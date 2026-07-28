@@ -3,7 +3,7 @@ import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Cell,
 } from 'recharts'
 import {
-  ArrowLeft, MapPin, Download, Share2, Loader2, TrendingUp, AlertTriangle, FileText,
+  ArrowLeft, ArrowRight, MapPin, Download, Share2, Loader2, TrendingUp, AlertTriangle, FileText,
 } from 'lucide-react'
 import ScoreRing from '../../components/ui/ScoreRing.jsx'
 import Stat from '../../components/ui/Stat.jsx'
@@ -51,10 +51,34 @@ export default function ReportDetail() {
   const d = reportDetail(r)
   const vb = VERDICT_BANNER[r.verdict] || VERDICT_BANNER.Strong
   const mao = Math.round(r.arv * 0.7 - r.rehab)
+  const idx = SAMPLE_REPORTS.findIndex((x) => x.id === r.id)
+  const prev = SAMPLE_REPORTS[idx - 1]
+  const next = SAMPLE_REPORTS[idx + 1]
 
   return (
     <>
-      <Back />
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <Link to="/app/reports" className="inline-flex items-center gap-1.5 text-sm font-medium text-ink-500 hover:text-ink-800">
+          <ArrowLeft size={16} /> Back to reports
+        </Link>
+        <div className="flex items-center gap-2">
+          {prev ? (
+            <Link to={`/app/reports/${prev.id}`} className="btn-secondary px-3" title={`Prev: ${prev.address}`}>
+              <ArrowLeft size={16} /><span className="hidden sm:inline">Prev</span>
+            </Link>
+          ) : (
+            <span className="btn-secondary px-3 cursor-default opacity-40"><ArrowLeft size={16} /><span className="hidden sm:inline">Prev</span></span>
+          )}
+          <span className="px-1 text-xs text-ink-400">{idx + 1} of {SAMPLE_REPORTS.length}</span>
+          {next ? (
+            <Link to={`/app/reports/${next.id}`} className="btn-secondary px-3" title={`Next: ${next.address}`}>
+              <span className="hidden sm:inline">Next</span><ArrowRight size={16} />
+            </Link>
+          ) : (
+            <span className="btn-secondary px-3 cursor-default opacity-40"><span className="hidden sm:inline">Next</span><ArrowRight size={16} /></span>
+          )}
+        </div>
+      </div>
 
       {/* Header */}
       <div className="card mb-6 p-6">
