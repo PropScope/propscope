@@ -131,3 +131,6 @@ html.dark .psportal { background-color: #0a1120; }
 /* Inputs */
 .dark .psportal input, .dark .psportal textarea, .dark .psportal select { color-scheme: dark; }
 .dark .psportal input::placeholder, .dark .psportal textarea::placeholder { color: #64748b !important; }
+
+/* Logo wordmark: keep "Prop" visible on the dark sidebar ("Scope" stays emerald via its own class) */
+.dark .psportal .ps-wordmark { color: #ffffff; }

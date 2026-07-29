@@ -13,7 +13,7 @@ export default function Logo({ to = '/', light = false }) {
           <circle cx="16" cy="16" r="2" fill="#34d399" stroke="none" />
         </svg>
       </span>
-      <span className={light ? 'text-white' : 'text-brand-900'}>
+      <span className={`ps-wordmark ${light ? 'text-white' : 'text-brand-900'}`}>
         Prop<span className="text-emerald-600">Scope</span>
       </span>
     </Link>
