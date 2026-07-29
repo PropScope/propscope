@@ -11,6 +11,7 @@ import Stat from '../../components/ui/Stat.jsx'
 import { reportDetail } from '../../lib/mockData.js'
 import { getReport, listReports } from '../../lib/reports.js'
 import { downloadInvestorReport, downloadSellerSummary } from '../../lib/pdf.js'
+import { useAuth } from '../../context/AuthContext.jsx'
 import { planById } from '../../lib/plans.js'
 import { usd, pct } from '../../lib/format.js'
 
@@ -29,6 +30,13 @@ const n = (v) => Number(v) || 0
 
 export default function ReportDetail() {
   const { id } = useParams()
+  const { user } = useAuth()
+  const contact = {
+    name: user?.name,
+    company: user?.company && user.company !== '—' ? user.company : '',
+    phone: user?.phone,
+    email: user?.email,
+  }
   const [r, setR] = useState(null)
   const [all, setAll] = useState([])
   const [loading, setLoading] = useState(true)
@@ -127,7 +135,7 @@ export default function ReportDetail() {
               <p className="mt-1 text-xs font-medium text-ink-500">PropScope Score</p>
             </div>
             <div className="flex flex-col gap-2">
-              <button onClick={() => downloadInvestorReport(r)} className="btn-primary"><Download size={16} /> PDF</button>
+              <button onClick={() => downloadInvestorReport(r, { contact })} className="btn-primary"><Download size={16} /> PDF</button>
               <button className="btn-secondary"><Share2 size={16} /> Share</button>
             </div>
           </div>
@@ -266,7 +274,7 @@ export default function ReportDetail() {
               <input type="checkbox" checked={includeRepairs} onChange={(e) => setIncludeRepairs(e.target.checked)} className="h-4 w-4 rounded border-ink-300 text-brand-600 focus:ring-brand-500" />
               Include repair summary
             </label>
-            <button onClick={() => downloadSellerSummary(r, { includeRepairs })} className="btn-secondary"><Download size={16} /> Seller PDF</button>
+            <button onClick={() => downloadSellerSummary(r, { includeRepairs, contact })} className="btn-secondary"><Download size={16} /> Seller PDF</button>
           </div>
         </div>
         <p className="mt-1 text-sm text-ink-500">A plain-English page you can share with the seller — the offer, and the numbers behind it.</p>

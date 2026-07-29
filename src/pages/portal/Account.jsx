@@ -6,11 +6,29 @@ import { dateFmt } from '../../lib/format.js'
 import ThemeToggle from '../../components/ui/ThemeToggle.jsx'
 
 export default function Account() {
-  const { user } = useAuth()
+  const { user, updateProfile } = useAuth()
   const [saved, setSaved] = useState(false)
-  const [form, setForm] = useState({ name: user?.name || '', email: user?.email || '', company: user?.company || '' })
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [form, setForm] = useState({
+    name: user?.name || '',
+    company: user?.company && user.company !== '—' ? user.company : '',
+    phone: user?.phone || '',
+    email: user?.email || '',
+  })
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
-  const save = (e) => { e.preventDefault(); setSaved(true); setTimeout(() => setSaved(false), 2500) }
+  const save = async (e) => {
+    e.preventDefault()
+    setSaving(true); setError('')
+    try {
+      await updateProfile({ name: form.name, company: form.company, phone: form.phone })
+      setSaved(true); setTimeout(() => setSaved(false), 2500)
+    } catch (err) {
+      setError((err && err.message) || 'Could not save changes.')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   return (
     <>
@@ -21,11 +39,14 @@ export default function Account() {
           <form onSubmit={save} className="mt-4 space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <div><label className="label">Full name</label><input className="input" value={form.name} onChange={set('name')} /></div>
-              <div><label className="label">Company</label><input className="input" value={form.company} onChange={set('company')} /></div>
+              <div><label className="label">Company</label><input className="input" placeholder="Your company (optional)" value={form.company} onChange={set('company')} /></div>
+              <div><label className="label">Phone</label><input className="input" placeholder="(555) 123-4567" value={form.phone} onChange={set('phone')} /></div>
+              <div><label className="label">Email</label><input type="email" className="input opacity-60 cursor-not-allowed" value={form.email} disabled /></div>
             </div>
-            <div><label className="label">Email</label><input type="email" className="input" value={form.email} onChange={set('email')} /></div>
+            <p className="text-xs text-ink-400">Your name, company, and phone can appear on the reports you share. Email is tied to your login and can't be changed here.</p>
+            {error && <p className="text-sm text-rose-600">{error}</p>}
             <div className="flex items-center gap-3">
-              <button className="btn-primary">Save changes</button>
+              <button className="btn-primary" disabled={saving}>{saving ? 'Saving…' : 'Save changes'}</button>
               {saved && <span className="flex items-center gap-1 text-sm text-emerald-600"><Check size={16} /> Saved</span>}
             </div>
           </form>

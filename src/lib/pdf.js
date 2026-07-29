@@ -129,8 +129,29 @@ function groupRehab(items) {
   return out
 }
 
+// Optional "Prepared by" contact block (from the user's profile).
+function preparedBy(doc, y, contact) {
+  if (!contact) return y
+  const nameLine = [contact.name, contact.company].filter(Boolean).join('  ·  ')
+  const contactLine = [contact.phone, contact.email].filter(Boolean).join('   ·   ')
+  if (!nameLine && !contactLine) return y
+  y = ensure(doc, y, 54)
+  doc.setDrawColor(...LINE); doc.setLineWidth(0.8); doc.line(M, y, RIGHT, y); y += 16
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(...INK5)
+  doc.text('PREPARED BY', M, y); y += 14
+  if (nameLine) {
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(10.5); doc.setTextColor(...NAVY)
+    doc.text(nameLine, M, y); y += 13
+  }
+  if (contactLine) {
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5); doc.setTextColor(...INK)
+    doc.text(contactLine, M, y); y += 12
+  }
+  return y + 6
+}
+
 // ================= Investor report =================
-export function downloadInvestorReport(r) {
+export function downloadInvestorReport(r, opts = {}) {
   if (!r) return
   const d = reportDetail(r)
   const tier = planById(r.tier)
@@ -218,6 +239,8 @@ export function downloadInvestorReport(r) {
     doc.splitTextToSize(memo, RIGHT - M).forEach((ln) => { y = ensure(doc, y, 14); doc.text(ln, M, y); y += 14 })
   }
 
+  y = preparedBy(doc, y, opts.contact)
+
   footers(doc, 'Estimates for informational purposes only. Verify all figures before making an offer. Not financial advice.')
   doc.save(`PropScope-Report-${slug(r.address)}.pdf`)
 }
@@ -226,6 +249,7 @@ export function downloadInvestorReport(r) {
 export function downloadSellerSummary(r, opts = {}) {
   if (!r) return
   const includeRepairs = opts.includeRepairs !== false
+  const contact = opts.contact
   const d = reportDetail(r)
   const mao = Math.round(n(r.arv) * 0.7 - n(r.rehab))
   const doc = newDoc()
@@ -279,6 +303,8 @@ export function downloadSellerSummary(r, opts = {}) {
     { label: 'Address', key: 'address', x: M, w: 380 },
     { label: 'Sold', key: 'sold', x: 430, w: 134, align: 'right' },
   ], d.comps.map((c) => ({ address: c.address, sold: usd(n(c.sold)) })))
+
+  y = preparedBy(doc, y, contact)
 
   footers(doc, 'Figures are estimates to support discussion — not a formal appraisal, and not a binding offer.')
   doc.save(`PropScope-Seller-Summary-${slug(r.address)}.pdf`)

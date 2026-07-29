@@ -13,6 +13,7 @@ function mapUser(u) {
     name,
     email: u.email,
     company: md.company || '—',
+    phone: md.phone || '',
     plan: md.plan || 'deal-analyzer',
     avatarInitials: initials,
     memberSince: (u.created_at || new Date().toISOString()).slice(0, 10),
@@ -59,10 +60,17 @@ export function AuthProvider({ children }) {
     return true
   }, [])
 
+  const updateProfile = useCallback(async ({ name, company, phone }) => {
+    const { data, error } = await supabase.auth.updateUser({ data: { name, company, phone } })
+    if (error) throw error
+    setUser(mapUser(data.user))
+    return true
+  }, [])
+
   const logout = useCallback(async () => { await supabase.auth.signOut() }, [])
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, signup, logout, resetPassword, isAuthed: !!user }}>
+    <AuthContext.Provider value={{ user, loading, login, signup, logout, resetPassword, updateProfile, isAuthed: !!user }}>
       {children}
     </AuthContext.Provider>
   )
