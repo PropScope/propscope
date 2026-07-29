@@ -10,6 +10,7 @@ import ScoreRing from '../../components/ui/ScoreRing.jsx'
 import Stat from '../../components/ui/Stat.jsx'
 import { reportDetail } from '../../lib/mockData.js'
 import { getReport, listReports } from '../../lib/reports.js'
+import { downloadInvestorReport, downloadSellerSummary } from '../../lib/pdf.js'
 import { planById } from '../../lib/plans.js'
 import { usd, pct } from '../../lib/format.js'
 
@@ -125,7 +126,7 @@ export default function ReportDetail() {
               <p className="mt-1 text-xs font-medium text-ink-500">PropScope Score</p>
             </div>
             <div className="flex flex-col gap-2">
-              <button className="btn-primary"><Download size={16} /> PDF</button>
+              <button onClick={() => downloadInvestorReport(r)} className="btn-primary"><Download size={16} /> PDF</button>
               <button className="btn-secondary"><Share2 size={16} /> Share</button>
             </div>
           </div>
@@ -259,7 +260,7 @@ export default function ReportDetail() {
       <div className="mt-6 card p-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h3 className="flex items-center gap-2 font-semibold text-ink-900"><FileText size={18} className="text-brand-600" /> Seller Summary — how we reached our offer</h3>
-          <button className="btn-secondary"><Download size={16} /> Seller PDF</button>
+          <button onClick={() => downloadSellerSummary(r)} className="btn-secondary"><Download size={16} /> Seller PDF</button>
         </div>
         <p className="mt-1 text-sm text-ink-500">A plain-English page you can share with the seller — the offer, and the numbers behind it.</p>
 
