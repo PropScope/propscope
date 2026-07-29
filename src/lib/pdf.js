@@ -110,6 +110,25 @@ function footers(doc, note) {
   }
 }
 
+// Group itemized rehab lines into a few seller-friendly buckets with subtotals.
+function groupRehab(items) {
+  const buckets = [
+    { label: 'Roof & major systems', match: /(roof|hvac|furnace|\bac\b|air.?condition|electric|plumb|foundation|water heater|system|mechanical)/i, cost: 0 },
+    { label: 'Kitchen & baths', match: /(kitchen|bath)/i, cost: 0 },
+    { label: 'Cosmetic & flooring', match: /(paint|floor|cosmetic|drywall|interior|exterior|landscap|window|door|trim)/i, cost: 0 },
+    { label: 'Permits & contingency', match: /(conting|permit|misc|\bfee|other)/i, cost: 0 },
+  ]
+  const other = { label: 'Other work', cost: 0 }
+  ;(items || []).forEach((it) => {
+    const c = n(it.cost)
+    const b = buckets.find((bk) => bk.match.test(it.item || ''))
+    if (b) b.cost += c; else other.cost += c
+  })
+  const out = buckets.filter((b) => b.cost > 0).map((b) => ({ label: b.label, cost: b.cost }))
+  if (other.cost > 0) out.push({ label: other.label, cost: other.cost })
+  return out
+}
+
 // ================= Investor report =================
 export function downloadInvestorReport(r) {
   if (!r) return
@@ -204,8 +223,9 @@ export function downloadInvestorReport(r) {
 }
 
 // ================= Seller summary =================
-export function downloadSellerSummary(r) {
+export function downloadSellerSummary(r, opts = {}) {
   if (!r) return
+  const includeRepairs = opts.includeRepairs !== false
   const d = reportDetail(r)
   const mao = Math.round(n(r.arv) * 0.7 - n(r.rehab))
   const doc = newDoc()
@@ -237,6 +257,22 @@ export function downloadSellerSummary(r) {
     doc.text(String(b[1]), x + 10, y + 40)
   })
   y += h + 22
+
+  if (includeRepairs) {
+    y = sectionTitle(doc, y, 'Estimated repair summary')
+    const groups = groupRehab(d.rehab)
+    y = table(doc, y, [
+      { label: 'Category', key: 'label', x: M, w: 380 },
+      { label: 'Estimate', key: 'cost', x: 430, w: 134, align: 'right' },
+    ], groups.map((g) => ({ label: g.label, cost: usd(g.cost) })))
+    const rtotal = groups.reduce((a, b) => a + b.cost, 0)
+    y = ensure(doc, y, 30)
+    doc.setFillColor(...SOFT); doc.roundedRect(M, y, RIGHT - M, 24, 4, 4, 'F')
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(...NAVY)
+    doc.text('Total estimated repairs', M + 12, y + 16)
+    doc.text(usd(rtotal), RIGHT - 12, y + 16, { align: 'right' })
+    y += 24 + 18
+  }
 
   y = sectionTitle(doc, y, 'Comparable sales this is based on')
   y = table(doc, y, [

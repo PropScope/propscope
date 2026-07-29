@@ -33,6 +33,7 @@ export default function ReportDetail() {
   const [all, setAll] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [includeRepairs, setIncludeRepairs] = useState(true)
 
   useEffect(() => {
     let active = true
@@ -260,7 +261,13 @@ export default function ReportDetail() {
       <div className="mt-6 card p-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h3 className="flex items-center gap-2 font-semibold text-ink-900"><FileText size={18} className="text-brand-600" /> Seller Summary — how we reached our offer</h3>
-          <button onClick={() => downloadSellerSummary(r)} className="btn-secondary"><Download size={16} /> Seller PDF</button>
+          <div className="flex items-center gap-4">
+            <label className="flex cursor-pointer select-none items-center gap-2 text-sm text-ink-500">
+              <input type="checkbox" checked={includeRepairs} onChange={(e) => setIncludeRepairs(e.target.checked)} className="h-4 w-4 rounded border-ink-300 text-brand-600 focus:ring-brand-500" />
+              Include repair summary
+            </label>
+            <button onClick={() => downloadSellerSummary(r, { includeRepairs })} className="btn-secondary"><Download size={16} /> Seller PDF</button>
+          </div>
         </div>
         <p className="mt-1 text-sm text-ink-500">A plain-English page you can share with the seller — the offer, and the numbers behind it.</p>
 
