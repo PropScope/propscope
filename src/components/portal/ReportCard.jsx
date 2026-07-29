@@ -12,6 +12,7 @@ const verdictTone = {
 export default function ReportCard({ r }) {
   const tier = planById(r.tier)
   const generating = r.status === 'generating'
+  const scoreTone = r.score >= 80 ? 'text-emerald-600' : r.score >= 65 ? 'text-brand-600' : r.score >= 50 ? 'text-amber-600' : 'text-rose-600'
   return (
     <Link to={`/app/reports/${r.id}`}
       className="card group flex flex-col p-5 transition hover:ring-brand-300">
@@ -38,10 +39,10 @@ export default function ReportCard({ r }) {
       </div>
 
       <div className="mt-4 grid grid-cols-3 gap-3 border-t border-ink-100 pt-4 text-sm">
-        <div><p className="text-xs text-ink-400">ARV</p><p className="font-semibold">{usd(r.arv)}</p></div>
-        <div><p className="text-xs text-ink-400">Rehab</p><p className="font-semibold">{usd(r.rehab)}</p></div>
+        <div><p className="text-xs text-ink-400">ARV</p><p className="font-semibold text-ink-900">{usd(r.arv)}</p></div>
+        <div><p className="text-xs text-ink-400">Rehab</p><p className="font-semibold text-ink-900">{usd(r.rehab)}</p></div>
         <div><p className="text-xs text-ink-400">Score</p>
-          <p className="font-semibold">{generating ? '—' : `${r.score}/100`}</p></div>
+          <p className={`font-bold ${generating ? 'text-ink-400' : scoreTone}`}>{generating ? '—' : `${r.score}`}<span className="text-xs font-medium text-ink-400">/100</span></p></div>
       </div>
     </Link>
   )
