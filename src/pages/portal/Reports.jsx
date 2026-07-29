@@ -1,28 +1,43 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { Search, FilePlus2, CheckCircle2, X } from 'lucide-react'
+import { Search, FilePlus2, CheckCircle2, X, Loader2 } from 'lucide-react'
 import PageHeader from '../../components/portal/PageHeader.jsx'
 import ReportCard from '../../components/portal/ReportCard.jsx'
-import { SAMPLE_REPORTS } from '../../lib/mockData.js'
+import { listReports } from '../../lib/reports.js'
 
-const filters = ['All', 'Strong', 'Moderate', 'Thin', 'Generating']
+const filters = ['All', 'Strong', 'Moderate', 'Thin']
 
 export default function Reports() {
   const [params, setParams] = useSearchParams()
   const [q, setQ] = useState('')
   const [filter, setFilter] = useState('All')
+  const [reports, setReports] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const showBanner = params.get('new') === '1'
 
+  useEffect(() => {
+    let active = true
+    ;(async () => {
+      try {
+        const data = await listReports()
+        if (active) setReports(data)
+      } catch (err) {
+        if (active) setError((err && err.message) || 'Could not load your reports.')
+      } finally {
+        if (active) setLoading(false)
+      }
+    })()
+    return () => { active = false }
+  }, [])
+
   const results = useMemo(() => {
-    return SAMPLE_REPORTS.filter((r) => {
+    return reports.filter((r) => {
       const matchQ = `${r.address} ${r.city} ${r.state} ${r.strategy}`.toLowerCase().includes(q.toLowerCase())
-      const matchF =
-        filter === 'All' ||
-        (filter === 'Generating' && r.status === 'generating') ||
-        r.verdict === filter
+      const matchF = filter === 'All' || r.verdict === filter
       return matchQ && matchF
     })
-  }, [q, filter])
+  }, [q, filter, reports])
 
   return (
     <>
@@ -31,7 +46,7 @@ export default function Reports() {
 
       {showBanner && (
         <div className="mb-6 flex items-center justify-between rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800 ring-1 ring-emerald-100">
-          <span className="flex items-center gap-2"><CheckCircle2 size={18} /> Deal submitted — your report is generating and will appear here shortly.</span>
+          <span className="flex items-center gap-2"><CheckCircle2 size={18} /> Report generated — you'll find it below.</span>
           <button onClick={() => setParams({})} className="text-emerald-600 hover:text-emerald-800"><X size={16} /></button>
         </div>
       )}
@@ -51,7 +66,22 @@ export default function Reports() {
         </div>
       </div>
 
-      {results.length === 0 ? (
+      {loading ? (
+        <div className="card grid place-items-center py-16 text-center">
+          <Loader2 size={22} className="animate-spin text-brand-600" />
+          <p className="mt-3 text-ink-500">Loading your reports…</p>
+        </div>
+      ) : error ? (
+        <div className="card grid place-items-center py-16 text-center">
+          <p className="text-rose-600">{error}</p>
+        </div>
+      ) : reports.length === 0 ? (
+        <div className="card grid place-items-center py-16 text-center">
+          <p className="text-ink-700 font-medium">No reports yet</p>
+          <p className="mt-1 text-ink-500">Run your first deal analysis to see it here.</p>
+          <Link to="/app/new" className="btn-primary mt-5"><FilePlus2 size={16} /> New analysis</Link>
+        </div>
+      ) : results.length === 0 ? (
         <div className="card grid place-items-center py-16 text-center">
           <p className="text-ink-500">No reports match your search.</p>
         </div>

@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Cell,
@@ -7,7 +8,8 @@ import {
 } from 'lucide-react'
 import ScoreRing from '../../components/ui/ScoreRing.jsx'
 import Stat from '../../components/ui/Stat.jsx'
-import { SAMPLE_REPORTS, reportDetail } from '../../lib/mockData.js'
+import { reportDetail } from '../../lib/mockData.js'
+import { getReport, listReports } from '../../lib/reports.js'
 import { planById } from '../../lib/plans.js'
 import { usd, pct } from '../../lib/format.js'
 
@@ -22,38 +24,59 @@ const VERDICT_BANNER = {
     msg: 'the spread is tight with little room for error. Proceed only on conservative numbers — otherwise pass.' },
 }
 
+const n = (v) => Number(v) || 0
+
 export default function ReportDetail() {
   const { id } = useParams()
-  const r = SAMPLE_REPORTS.find((x) => x.id === id)
+  const [r, setR] = useState(null)
+  const [all, setAll] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
-  if (!r) return (
+  useEffect(() => {
+    let active = true
+    setLoading(true)
+    ;(async () => {
+      try {
+        const [one, list] = await Promise.all([getReport(id), listReports()])
+        if (!active) return
+        setR(one); setAll(list)
+      } catch (err) {
+        if (active) setError((err && err.message) || 'Could not load this report.')
+      } finally {
+        if (active) setLoading(false)
+      }
+    })()
+    return () => { active = false }
+  }, [id])
+
+  if (loading) return (
+    <>
+      <Back />
+      <div className="card grid place-items-center py-24 text-center">
+        <Loader2 size={36} className="animate-spin text-brand-600" />
+        <p className="mt-3 text-ink-500">Loading report…</p>
+      </div>
+    </>
+  )
+
+  if (error || !r) return (
     <div className="card grid place-items-center py-20 text-center">
-      <p className="text-ink-500">Report not found.</p>
+      <p className="text-ink-500">{error || 'Report not found.'}</p>
       <Link to="/app/reports" className="btn-secondary mt-4"><ArrowLeft size={16} /> Back to reports</Link>
     </div>
   )
 
   const tier = planById(r.tier)
-
-  if (r.status === 'generating') return (
-    <>
-      <Back />
-      <div className="card grid place-items-center py-24 text-center">
-        <Loader2 size={40} className="animate-spin text-brand-600" />
-        <h2 className="mt-4 text-xl font-semibold text-ink-900">Generating your report…</h2>
-        <p className="mt-1 max-w-sm text-sm text-ink-500">
-          PropScope is pulling comps, building the rehab budget, and modeling your strategies for {r.address}. This usually takes a few minutes.
-        </p>
-      </div>
-    </>
-  )
-
   const d = reportDetail(r)
-  const vb = VERDICT_BANNER[r.verdict] || VERDICT_BANNER.Strong
-  const mao = Math.round(r.arv * 0.7 - r.rehab)
-  const idx = SAMPLE_REPORTS.findIndex((x) => x.id === r.id)
-  const prev = SAMPLE_REPORTS[idx - 1]
-  const next = SAMPLE_REPORTS[idx + 1]
+  const vb = VERDICT_BANNER[r.verdict] || VERDICT_BANNER.Moderate
+  const mao = Math.round(n(r.arv) * 0.7 - n(r.rehab))
+  const idx = all.findIndex((x) => x.id === r.id)
+  const prev = idx > 0 ? all[idx - 1] : null
+  const next = idx >= 0 && idx < all.length - 1 ? all[idx + 1] : null
+  const position = idx >= 0 ? idx + 1 : 1
+  const total = all.length || 1
+  const bestStrategy = d.strategies.slice().sort((a, b) => n(b.roi) - n(a.roi))[0]
 
   return (
     <>
@@ -69,7 +92,7 @@ export default function ReportDetail() {
           ) : (
             <span className="btn-secondary px-3 cursor-default opacity-40"><ArrowLeft size={16} /><span className="hidden sm:inline">Prev</span></span>
           )}
-          <span className="px-1 text-xs text-ink-400">{idx + 1} of {SAMPLE_REPORTS.length}</span>
+          <span className="px-1 text-xs text-ink-400">{position} of {total}</span>
           {next ? (
             <Link to={`/app/reports/${next.id}`} className="btn-secondary px-3" title={`Next: ${next.address}`}>
               <span className="hidden sm:inline">Next</span><ArrowRight size={16} />
@@ -84,7 +107,7 @@ export default function ReportDetail() {
       <div className="card mb-6 p-6">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
-            <span className="grid h-14 w-14 place-items-center rounded-2xl text-white" style={{ background: r.thumb }}>
+            <span className="grid h-14 w-14 place-items-center rounded-2xl text-white" style={{ background: r.thumb || '#213f66' }}>
               <MapPin size={24} />
             </span>
             <div>
@@ -93,13 +116,12 @@ export default function ReportDetail() {
               <div className="mt-2 flex flex-wrap gap-2 text-xs">
                 <span className="badge bg-ink-100 text-ink-600">{tier?.name}</span>
                 <span className="badge bg-brand-50 text-brand-700">{r.strategy}</span>
-                <span className="badge bg-ink-100 text-ink-500">{r.id}</span>
               </div>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <div className="text-center">
-              <ScoreRing score={r.score} size={72} />
+              <ScoreRing score={n(r.score)} size={72} />
               <p className="mt-1 text-xs font-medium text-ink-500">PropScope Score</p>
             </div>
             <div className="flex flex-col gap-2">
@@ -112,9 +134,9 @@ export default function ReportDetail() {
         <div className={`mt-5 flex items-start gap-3 rounded-xl ${vb.wrap} p-4`}>
           <vb.Icon size={20} className={`mt-0.5 shrink-0 ${vb.icon}`} />
           <div>
-            <p className={`font-semibold ${vb.title}`}>Verdict: {r.verdict} — best played as {d.strategies.sort((a,b)=>b.roi-a.roi)[0].name}</p>
+            <p className={`font-semibold ${vb.title}`}>Verdict: {r.verdict}{bestStrategy ? ` — best played as ${bestStrategy.name}` : ''}</p>
             <p className={`mt-0.5 text-sm ${vb.body}`}>
-              At {usd(r.purchasePrice)} in with {usd(r.rehab)} rehab against a {usd(r.arv)} ARV, {vb.msg}
+              At {usd(n(r.purchasePrice))} in with {usd(n(r.rehab))} rehab against a {usd(n(r.arv))} ARV, {vb.msg}
             </p>
           </div>
         </div>
@@ -122,14 +144,14 @@ export default function ReportDetail() {
 
       {/* Key stats */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="Purchase price" value={usd(r.purchasePrice)} />
-        <Stat label="After-repair value" value={usd(r.arv)} tone="brand" />
-        <Stat label="Rehab estimate" value={usd(r.rehab)} />
-        <Stat label="Max allowable offer" value={usd(Math.round(r.arv * 0.7 - r.rehab))} />
-        <Stat label="Monthly rent" value={`$${r.monthlyRent.toLocaleString()}`} />
-        <Stat label="Monthly cash flow" value={usd(r.monthlyCashFlow)} tone="positive" />
-        <Stat label="Cap rate" value={pct(r.capRate)} />
-        <Stat label="Cash-on-cash" value={pct(r.cashOnCash)} tone="positive" />
+        <Stat label="Purchase price" value={usd(n(r.purchasePrice))} />
+        <Stat label="After-repair value" value={usd(n(r.arv))} tone="brand" />
+        <Stat label="Rehab estimate" value={usd(n(r.rehab))} />
+        <Stat label="Max allowable offer" value={usd(mao)} />
+        <Stat label="Monthly rent" value={usd(n(r.monthlyRent))} />
+        <Stat label="Monthly cash flow" value={usd(n(r.monthlyCashFlow))} tone="positive" />
+        <Stat label="Cap rate" value={pct(n(r.capRate))} />
+        <Stat label="Cash-on-cash" value={pct(n(r.cashOnCash))} tone="positive" />
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
@@ -188,11 +210,11 @@ export default function ReportDetail() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-ink-50">
-                {d.comps.map((c) => (
-                  <tr key={c.address}>
+                {d.comps.map((c, i) => (
+                  <tr key={c.address || i}>
                     <td className="py-2.5 font-medium text-ink-800">{c.address}</td>
-                    <td className="py-2.5 text-ink-700">{usd(c.sold)}</td>
-                    <td className="py-2.5 text-ink-500">{c.sqft.toLocaleString()}</td>
+                    <td className="py-2.5 text-ink-700">{usd(n(c.sold))}</td>
+                    <td className="py-2.5 text-ink-500">{n(c.sqft).toLocaleString()}</td>
                     <td className="py-2.5 text-ink-500">{c.beds}/{c.baths}</td>
                     <td className="py-2.5 text-ink-500">{c.dist} mi</td>
                   </tr>
@@ -206,10 +228,10 @@ export default function ReportDetail() {
         <div className="card p-6 lg:col-span-2">
           <h3 className="flex items-center gap-2 font-semibold text-ink-900"><AlertTriangle size={18} className="text-amber-500" /> Risk profile</h3>
           <ul className="mt-4 space-y-3">
-            {d.risks.map((rk) => (
-              <li key={rk.label} className="flex items-center justify-between">
+            {d.risks.map((rk, i) => (
+              <li key={rk.label || i} className="flex items-center justify-between">
                 <span className="text-sm text-ink-600">{rk.label}</span>
-                <span className={`badge ${riskTone[rk.level]}`}>{rk.level}</span>
+                <span className={`badge ${riskTone[rk.level] || 'text-ink-500 bg-ink-50'}`}>{rk.level}</span>
               </li>
             ))}
           </ul>
@@ -220,16 +242,16 @@ export default function ReportDetail() {
       <div className="mt-6 card p-6">
         <h3 className="font-semibold text-ink-900">Rehab budget</h3>
         <div className="mt-4 grid gap-x-8 gap-y-2 sm:grid-cols-2">
-          {d.rehab.map((item) => (
-            <div key={item.item} className="flex items-center justify-between border-b border-ink-50 py-2 text-sm">
+          {d.rehab.map((item, i) => (
+            <div key={item.item || i} className="flex items-center justify-between border-b border-ink-50 py-2 text-sm">
               <span className="text-ink-600">{item.item}</span>
-              <span className="font-semibold text-ink-900">{usd(item.cost)}</span>
+              <span className="font-semibold text-ink-900">{usd(n(item.cost))}</span>
             </div>
           ))}
         </div>
         <div className="mt-4 flex items-center justify-between rounded-xl bg-ink-50 px-4 py-3">
           <span className="font-semibold text-ink-700">Total rehab estimate</span>
-          <span className="text-lg font-bold text-ink-900">{usd(d.rehab.reduce((a, b) => a + b.cost, 0))}</span>
+          <span className="text-lg font-bold text-ink-900">{usd(d.rehab.reduce((a, b) => a + n(b.cost), 0))}</span>
         </div>
       </div>
 
@@ -242,25 +264,25 @@ export default function ReportDetail() {
         <p className="mt-1 text-sm text-ink-500">A plain-English page you can share with the seller — the offer, and the numbers behind it.</p>
 
         <p className="mt-4 text-sm leading-relaxed text-ink-700">
-          Fully renovated, this home would be worth about <span className="font-semibold text-ink-900">{usd(r.arv)}</span>, based on
+          Fully renovated, this home would be worth about <span className="font-semibold text-ink-900">{usd(n(r.arv))}</span>, based on
           recent sales of similar nearby homes. In its current condition it needs an estimated
-          <span className="font-semibold text-ink-900"> {usd(r.rehab)}</span> in repairs and updates. After that work, holding and
+          <span className="font-semibold text-ink-900"> {usd(n(r.rehab))}</span> in repairs and updates. After that work, holding and
           closing costs, and a modest return, our offer comes to <span className="font-semibold text-emerald-700">{usd(mao)}</span>.
         </p>
 
         <div className="mt-5 grid gap-3 sm:grid-cols-3">
-          <div className="rounded-xl bg-ink-50 p-4"><p className="text-xs text-ink-400">After-repair value</p><p className="mt-1 font-bold text-ink-900">{usd(r.arv)}</p><p className="mt-0.5 text-xs text-ink-400">from recent comps</p></div>
-          <div className="rounded-xl bg-ink-50 p-4"><p className="text-xs text-ink-400">Estimated repairs</p><p className="mt-1 font-bold text-ink-900">{usd(r.rehab)}</p><p className="mt-0.5 text-xs text-ink-400">to reach that value</p></div>
+          <div className="rounded-xl bg-ink-50 p-4"><p className="text-xs text-ink-400">After-repair value</p><p className="mt-1 font-bold text-ink-900">{usd(n(r.arv))}</p><p className="mt-0.5 text-xs text-ink-400">from recent comps</p></div>
+          <div className="rounded-xl bg-ink-50 p-4"><p className="text-xs text-ink-400">Estimated repairs</p><p className="mt-1 font-bold text-ink-900">{usd(n(r.rehab))}</p><p className="mt-0.5 text-xs text-ink-400">to reach that value</p></div>
           <div className="rounded-xl bg-emerald-50 p-4"><p className="text-xs text-emerald-700">Our offer</p><p className="mt-1 font-bold text-emerald-800">{usd(mao)}</p><p className="mt-0.5 text-xs text-emerald-600">fair &amp; evidence-based</p></div>
         </div>
 
         <div className="mt-5">
           <p className="mb-2 text-sm font-semibold text-ink-700">Comparable sales this is based on</p>
           <div className="grid gap-2 sm:grid-cols-2">
-            {d.comps.map((c) => (
-              <div key={c.address} className="flex items-center justify-between rounded-lg ring-1 ring-ink-100 px-3 py-2 text-sm">
+            {d.comps.map((c, i) => (
+              <div key={c.address || i} className="flex items-center justify-between rounded-lg ring-1 ring-ink-100 px-3 py-2 text-sm">
                 <span className="text-ink-600">{c.address}</span>
-                <span className="font-semibold text-ink-900">{usd(c.sold)}</span>
+                <span className="font-semibold text-ink-900">{usd(n(c.sold))}</span>
               </div>
             ))}
           </div>
@@ -272,8 +294,8 @@ export default function ReportDetail() {
       {tier?.id === 'deal-intelligence' && (
         <div className="mt-6 card p-6">
           <h3 className="flex items-center gap-2 font-semibold text-ink-900"><FileText size={18} className="text-brand-600" /> Executive memo</h3>
-          <p className="mt-3 text-sm leading-relaxed text-ink-600">
-            {r.address} presents a {r.verdict.toLowerCase()} opportunity in the {r.city} submarket. Acquired at {usd(r.purchasePrice)} with a {usd(r.rehab)} renovation, the property reaches an after-repair value of {usd(r.arv)} — a spread that supports a BRRRR execution. Post-refinance, the investor recaptures the majority of invested capital while retaining a cash-flowing asset at {pct(r.capRate)} cap and {pct(r.cashOnCash)} cash-on-cash. Primary risk is rehab scope creep; we recommend locking contractor bids before close. Recommendation: proceed to offer at or below the max allowable offer of {usd(Math.round(r.arv * 0.7 - r.rehab))}.
+          <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-ink-600">
+            {r.memo || `${r.address} presents a ${String(r.verdict || '').toLowerCase()} opportunity in the ${r.city} submarket. Acquired at ${usd(n(r.purchasePrice))} with a ${usd(n(r.rehab))} renovation, the property reaches an after-repair value of ${usd(n(r.arv))}. Primary risk is rehab scope creep; lock contractor bids before close. Recommendation: proceed at or below the max allowable offer of ${usd(mao)}.`}
           </p>
         </div>
       )}

@@ -4,6 +4,7 @@ import { ArrowLeft, ArrowRight, Check, Loader2, Home, DollarSign, Wrench, Target
 import PageHeader from '../../components/portal/PageHeader.jsx'
 import { PLANS } from '../../lib/plans.js'
 import { usd } from '../../lib/format.js'
+import { generateReport } from '../../lib/reports.js'
 
 const steps = ['Property', 'Numbers', 'Strategy', 'Report tier']
 const strategies = ['Fix & Flip', 'Buy & Hold', 'BRRRR', 'Not sure — recommend one']
@@ -12,6 +13,7 @@ export default function NewDeal() {
   const nav = useNavigate()
   const [step, setStep] = useState(0)
   const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
   const [form, setForm] = useState({
     address: '', city: '', state: '', zip: '', beds: '', baths: '', sqft: '', year: '',
     purchasePrice: '', rehab: '', rent: '', arv: '',
@@ -24,9 +26,19 @@ export default function NewDeal() {
 
   const submit = async () => {
     setSubmitting(true)
-    await new Promise((r) => setTimeout(r, 1400))
-    setSubmitting(false)
-    nav('/app/reports?new=1')
+    setError('')
+    try {
+      const report = await generateReport({
+        address: form.address, city: form.city, state: form.state, zip: form.zip,
+        beds: form.beds, baths: form.baths, sqft: form.sqft, year: form.year,
+        purchasePrice: form.purchasePrice, rehab: form.rehab, rent: form.rent, arv: form.arv,
+        strategy: form.strategy, tier: form.tier, notes: form.notes,
+      })
+      nav(`/app/reports/${report.id}`)
+    } catch (err) {
+      setError((err && err.message) || 'Something went wrong generating your report.')
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -119,6 +131,13 @@ export default function NewDeal() {
           </Fieldset>
         )}
 
+        {error && (
+          <div className="mt-6 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>
+        )}
+        {submitting && (
+          <p className="mt-6 text-center text-sm text-ink-500">Analyzing the property and building your report — this usually takes 10–20 seconds.</p>
+        )}
+
         <div className="mt-8 flex items-center justify-between border-t border-ink-100 pt-6">
           <button onClick={back} disabled={step === 0} className="btn-secondary disabled:opacity-40">
             <ArrowLeft size={16} /> Back
@@ -127,7 +146,7 @@ export default function NewDeal() {
             <button onClick={next} className="btn-primary">Continue <ArrowRight size={16} /></button>
           ) : (
             <button onClick={submit} disabled={submitting} className="btn-primary">
-              {submitting ? <><Loader2 size={16} className="animate-spin" /> Submitting deal…</> : <>Generate report <Sparkles size={16} /></>}
+              {submitting ? <><Loader2 size={16} className="animate-spin" /> Generating report…</> : <>Generate report <Sparkles size={16} /></>}
             </button>
           )}
         </div>

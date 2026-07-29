@@ -30,77 +30,18 @@ export const SAMPLE_REPORTS = [
     profitFlip: 38600,
     thumb: '#182f4d',
   },
-  {
-    id: 'RPT-1039',
-    address: '212 Birchwood Ave',
-    city: 'Indianapolis', state: 'IN', zip: '46220',
-    tier: 'deal-analyzer',
-    strategy: 'Fix & Flip',
-    status: 'complete',
-    createdAt: '2026-06-18',
-    score: 71,
-    verdict: 'Moderate',
-    purchasePrice: 168000,
-    arv: 249000,
-    rehab: 52000,
-    monthlyRent: 1700,
-    capRate: 6.1,
-    cashOnCash: 9.4,
-    monthlyCashFlow: 218,
-    profitFlip: 21400,
-    thumb: '#0ea5e9',
-  },
-  {
-    id: 'RPT-1036',
-    address: '77 Lakeshore Ct',
-    city: 'Cincinnati', state: 'OH', zip: '45209',
-    tier: 'deal-check',
-    strategy: 'Buy & Hold',
-    status: 'complete',
-    createdAt: '2026-06-14',
-    score: 58,
-    verdict: 'Thin',
-    purchasePrice: 205000,
-    arv: 244000,
-    rehab: 18000,
-    monthlyRent: 1925,
-    capRate: 5.2,
-    cashOnCash: 6.1,
-    monthlyCashFlow: 96,
-    profitFlip: 12200,
-    thumb: '#64748b',
-  },
-  {
-    id: 'RPT-1031',
-    address: '1390 Sycamore St',
-    city: 'Louisville', state: 'KY', zip: '40204',
-    tier: 'deal-intelligence',
-    strategy: 'BRRRR',
-    status: 'generating',
-    createdAt: '2026-06-24',
-    score: null,
-    verdict: null,
-    purchasePrice: 119000,
-    arv: 201000,
-    rehab: 36500,
-    monthlyRent: 1625,
-    capRate: null,
-    cashOnCash: null,
-    monthlyCashFlow: null,
-    profitFlip: null,
-    thumb: '#0b2447',
-  },
 ]
 
-// Detailed breakdown for a single report (used on the report detail page)
+// Detailed breakdown for a single report (used on the report detail page).
+// Prefers real AI-generated data when present, falls back to illustrative sample data.
 export const reportDetail = (r) => ({
-  comps: [
+  comps: (r.comps && r.comps.length) ? r.comps : [
     { address: '4910 Maple Grove Dr', sold: 232000, sqft: 1480, beds: 3, baths: 2, dist: 0.2 },
     { address: '388 Oakridge Ln', sold: 244500, sqft: 1560, beds: 3, baths: 2, dist: 0.4 },
     { address: '5102 Maple Grove Dr', sold: 229000, sqft: 1420, beds: 3, baths: 2, dist: 0.3 },
     { address: '141 Cedar Hollow', sold: 251000, sqft: 1610, beds: 4, baths: 2, dist: 0.6 },
   ],
-  rehab: [
+  rehab: (r.rehabItems && r.rehabItems.length) ? r.rehabItems : [
     { item: 'Kitchen', cost: 12500 },
     { item: 'Bathrooms (2)', cost: 8200 },
     { item: 'Flooring', cost: 6800 },
@@ -109,29 +50,22 @@ export const reportDetail = (r) => ({
     { item: 'HVAC servicing', cost: 2100 },
     { item: 'Contingency (10%)', cost: 1400 },
   ],
-  cashflow: [
+  cashflow: (r.cashflow && r.cashflow.length) ? r.cashflow : [
     { name: 'Yr 1', value: Math.round((r.monthlyCashFlow || 300) * 12) },
     { name: 'Yr 2', value: Math.round((r.monthlyCashFlow || 300) * 12 * 1.03) },
     { name: 'Yr 3', value: Math.round((r.monthlyCashFlow || 300) * 12 * 1.061) },
     { name: 'Yr 4', value: Math.round((r.monthlyCashFlow || 300) * 12 * 1.093) },
     { name: 'Yr 5', value: Math.round((r.monthlyCashFlow || 300) * 12 * 1.126) },
   ],
-  strategies: [
+  strategies: (r.strategies && r.strategies.length) ? r.strategies : [
     { name: 'Fix & Flip', roi: 27, profit: r.profitFlip || 0 },
     { name: 'Buy & Hold', roi: r.cashOnCash || 0, profit: Math.round((r.monthlyCashFlow || 0) * 12) },
     { name: 'BRRRR', roi: (r.cashOnCash || 0) + 6.5, profit: Math.round((r.monthlyCashFlow || 0) * 12 + 4800) },
   ],
-  risks: [
+  risks: (r.risks && r.risks.length) ? r.risks : [
     { label: 'Market liquidity', level: 'Low' },
     { label: 'Rehab overrun', level: 'Medium' },
     { label: 'Rent vs. comps', level: 'Low' },
     { label: 'Days on market', level: 'Medium' },
   ],
 })
-
-export const ACTIVITY = [
-  { id: 1, text: 'Report RPT-1042 completed', time: '3 days ago', type: 'complete' },
-  { id: 2, text: 'New deal submitted: 1390 Sycamore St', time: 'Today', type: 'submit' },
-  { id: 3, text: 'Report RPT-1039 completed', time: '6 days ago', type: 'complete' },
-  { id: 4, text: 'Plan renewed — Investor Pro', time: '12 days ago', type: 'billing' },
-]
