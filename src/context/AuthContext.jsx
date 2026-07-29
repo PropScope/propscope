@@ -10,6 +10,7 @@ function mapUser(u) {
   const name = md.name || (u.email ? u.email.split('@')[0] : 'Investor')
   const initials = name.trim().split(/\s+/).map((s) => s[0]).slice(0, 2).join('').toUpperCase() || 'PS'
   return {
+    id: u.id,
     name,
     email: u.email,
     company: md.company || '—',
@@ -67,10 +68,17 @@ export function AuthProvider({ children }) {
     return true
   }, [])
 
+  const setPlan = useCallback(async (plan) => {
+    const { data, error } = await supabase.auth.updateUser({ data: { plan } })
+    if (error) throw error
+    setUser(mapUser(data.user))
+    return true
+  }, [])
+
   const logout = useCallback(async () => { await supabase.auth.signOut() }, [])
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, signup, logout, resetPassword, updateProfile, isAuthed: !!user }}>
+    <AuthContext.Provider value={{ user, loading, login, signup, logout, resetPassword, updateProfile, setPlan, isAuthed: !!user }}>
       {children}
     </AuthContext.Provider>
   )
