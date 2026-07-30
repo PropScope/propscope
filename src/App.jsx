@@ -14,6 +14,7 @@ import Terms from './pages/marketing/Terms.jsx'
 import Privacy from './pages/marketing/Privacy.jsx'
 import NotFound from './pages/marketing/NotFound.jsx'
 import SupportWidget from './components/support/SupportWidget.jsx'
+import { Analytics } from '@vercel/analytics/react'
 
 import Login from './pages/auth/Login.jsx'
 import Signup from './pages/auth/Signup.jsx'
@@ -84,6 +85,7 @@ export default function App() {
         <Route path="*" element={<NotFound />} />
       </Routes>
       <SupportWidget />
+      <Analytics />
     </>
   )
 }
