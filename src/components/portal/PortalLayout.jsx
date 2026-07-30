@@ -2,10 +2,11 @@ import { useState } from 'react'
 import { Outlet, NavLink, Link, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, FilePlus2, FileBarChart2, CreditCard, User2,
-  LogOut, Menu, X, Plus, Sparkles,
+  LogOut, Menu, X, Plus, Sparkles, ShieldCheck,
 } from 'lucide-react'
 import Logo from '../ui/Logo.jsx'
 import { useAuth } from '../../context/AuthContext.jsx'
+import { isAdmin } from '../../lib/admin.js'
 import { planById } from '../../lib/plans.js'
 import ThemeToggle from '../ui/ThemeToggle.jsx'
 
@@ -43,6 +44,15 @@ export default function PortalLayout() {
               <n.icon size={18} /> {n.label}
             </NavLink>
           ))}
+          {isAdmin(user) && (
+            <NavLink to="/app/admin" onClick={() => setOpen(false)}
+              className={({ isActive }) =>
+                `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
+                  isActive ? 'bg-brand-50 text-brand-700' : 'text-ink-600 hover:bg-ink-50'
+                }`}>
+              <ShieldCheck size={18} /> Admin
+            </NavLink>
+          )}
         </nav>
         <div className="absolute inset-x-3 bottom-3">
           <div className="rounded-xl bg-gradient-to-br from-brand-600 to-brand-700 p-4 text-white">

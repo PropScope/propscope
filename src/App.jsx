@@ -23,6 +23,7 @@ import Reports from './pages/portal/Reports.jsx'
 import ReportDetail from './pages/portal/ReportDetail.jsx'
 import Account from './pages/portal/Account.jsx'
 import Billing from './pages/portal/Billing.jsx'
+import Admin from './pages/portal/Admin.jsx'
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -72,6 +73,7 @@ export default function App() {
           <Route path="reports/:id" element={<ReportDetail />} />
           <Route path="account" element={<Account />} />
           <Route path="billing" element={<Billing />} />
+          <Route path="admin" element={<Admin />} />
         </Route>
 
         <Route path="*" element={<NotFound />} />
