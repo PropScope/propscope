@@ -35,3 +35,14 @@ export async function getSubscriptionStatus(subscriptionId) {
   if (!res.ok) throw new Error(data.error || 'Could not check subscription.')
   return data // { status, cancelAtPeriodEnd, currentPeriodEnd }
 }
+
+export async function startReportCheckout({ tier, email, userId } = {}) {
+  const res = await fetch('/api/create-report-checkout', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ tier, email, userId, origin: window.location.origin }),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok || !data.url) throw new Error(data.error || 'Could not start checkout.')
+  window.location.assign(data.url)
+}

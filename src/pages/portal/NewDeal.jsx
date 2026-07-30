@@ -1,16 +1,21 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, Check, Loader2, Home, DollarSign, Wrench, Target, Sparkles } from 'lucide-react'
 import PageHeader from '../../components/portal/PageHeader.jsx'
-import { PLANS } from '../../lib/plans.js'
+import { PLANS, planById } from '../../lib/plans.js'
 import { usd } from '../../lib/format.js'
 import { generateReport } from '../../lib/reports.js'
+import { useAuth } from '../../context/AuthContext.jsx'
+import { startReportCheckout, confirmCheckout } from '../../lib/billing.js'
 
 const steps = ['Property', 'Numbers', 'Strategy', 'Report tier']
 const strategies = ['Fix & Flip', 'Buy & Hold', 'BRRRR', 'Not sure — recommend one']
 
 export default function NewDeal() {
   const nav = useNavigate()
+  const { user } = useAuth()
+  const [params, setParams] = useSearchParams()
+  const isPro = user?.plan === 'investor-pro'
   const [step, setStep] = useState(0)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -24,22 +29,59 @@ export default function NewDeal() {
   const next = () => setStep((s) => Math.min(s + 1, steps.length - 1))
   const back = () => setStep((s) => Math.max(s - 1, 0))
 
+  const buildIntake = () => ({
+    address: form.address, city: form.city, state: form.state, zip: form.zip,
+    beds: form.beds, baths: form.baths, sqft: form.sqft, year: form.year,
+    purchasePrice: form.purchasePrice, rehab: form.rehab, rent: form.rent, arv: form.arv,
+    strategy: form.strategy, tier: form.tier, notes: form.notes,
+  })
+
   const submit = async () => {
     setSubmitting(true)
     setError('')
     try {
-      const report = await generateReport({
-        address: form.address, city: form.city, state: form.state, zip: form.zip,
-        beds: form.beds, baths: form.baths, sqft: form.sqft, year: form.year,
-        purchasePrice: form.purchasePrice, rehab: form.rehab, rent: form.rent, arv: form.arv,
-        strategy: form.strategy, tier: form.tier, notes: form.notes,
-      })
-      nav(`/app/reports/${report.id}`)
+      if (isPro) {
+        const report = await generateReport(buildIntake())
+        nav(`/app/reports/${report.id}`)
+      } else {
+        localStorage.setItem('ps_pending_deal', JSON.stringify(buildIntake()))
+        await startReportCheckout({ tier: form.tier, email: user?.email, userId: user?.id })
+        // browser redirects to Stripe
+      }
     } catch (err) {
-      setError((err && err.message) || 'Something went wrong generating your report.')
+      setError((err && err.message) || 'Something went wrong.')
       setSubmitting(false)
     }
   }
+
+  // Returning from a per-report payment: verify, then generate the saved deal
+  useEffect(() => {
+    if (params.get('canceled')) {
+      setError('Payment canceled — your report was not generated.')
+      setParams({}, { replace: true })
+      return
+    }
+    const sid = params.get('session_id')
+    if (params.get('paid') && sid) {
+      ;(async () => {
+        setSubmitting(true); setError('')
+        try {
+          const s = await confirmCheckout(sid)
+          if (s.paymentStatus !== 'paid' && s.status !== 'complete') throw new Error('Payment was not completed.')
+          const raw = localStorage.getItem('ps_pending_deal')
+          if (!raw) throw new Error('Payment received, but the property details were lost. Please re-enter them to generate your report.')
+          const report = await generateReport(JSON.parse(raw))
+          localStorage.removeItem('ps_pending_deal')
+          nav(`/app/reports/${report.id}`)
+        } catch (e) {
+          setError((e && e.message) || 'Something went wrong after payment.')
+          setSubmitting(false)
+          setParams({}, { replace: true })
+        }
+      })()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <>
@@ -127,7 +169,11 @@ export default function NewDeal() {
                 </button>
               ))}
             </div>
-            <p className="mt-3 text-xs text-ink-400">On Investor Pro, reports are included — no per-report charge.</p>
+            <p className="mt-3 text-xs text-ink-400">
+              {isPro
+                ? 'Included in your Investor Pro plan — no charge for this report.'
+                : `You'll pay once for this report (${usd(planById(form.tier)?.price)}). Investor Pro includes unlimited reports.`}
+            </p>
           </Fieldset>
         )}
 
@@ -146,7 +192,7 @@ export default function NewDeal() {
             <button onClick={next} className="btn-primary">Continue <ArrowRight size={16} /></button>
           ) : (
             <button onClick={submit} disabled={submitting} className="btn-primary">
-              {submitting ? <><Loader2 size={16} className="animate-spin" /> Generating report…</> : <>Generate report <Sparkles size={16} /></>}
+              {submitting ? <><Loader2 size={16} className="animate-spin" /> Working…</> : (isPro ? <>Generate report <Sparkles size={16} /></> : <>Pay {usd(planById(form.tier)?.price)} &amp; generate <Sparkles size={16} /></>)}
             </button>
           )}
         </div>
