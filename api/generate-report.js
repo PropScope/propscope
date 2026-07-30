@@ -1,5 +1,43 @@
 // Vercel serverless function — securely calls the Claude API to generate a deal analysis.
 // The secret ANTHROPIC_API_KEY lives only here (server-side), never in the browser.
+// If RENTCAST_API_KEY is set, real market data (value, rent, comps) grounds the analysis.
+
+// Pull real market data from RentCast for this address. Returns null on any problem
+// so report generation always continues (falls back to AI-only estimates).
+async function getMarketData(d) {
+  const key = process.env.RENTCAST_API_KEY
+  if (!key || !d.address) return null
+  const addr = [d.address, d.city, `${d.state || ''} ${d.zip || ''}`.trim()].filter(Boolean).join(', ')
+  const q = encodeURIComponent(addr)
+  const headers = { 'X-Api-Key': key, accept: 'application/json' }
+  try {
+    const [vr, rr] = await Promise.all([
+      fetch(`https://api.rentcast.io/v1/avm/value?address=${q}`, { headers }),
+      fetch(`https://api.rentcast.io/v1/avm/rent/long-term?address=${q}`, { headers }),
+    ])
+    const value = vr.ok ? await vr.json() : null
+    const rent = rr.ok ? await rr.json() : null
+    if (!value && !rent) return null
+    const src = (value && value.comparables) || (rent && rent.comparables) || []
+    const comps = src.slice(0, 5).map((c) => ({
+      address: c.formattedAddress || c.address || 'Nearby comparable',
+      sold: Math.round(c.price || 0),
+      sqft: Math.round(c.squareFootage || 0),
+      beds: c.bedrooms ?? null,
+      baths: c.bathrooms ?? null,
+      dist: c.distance != null ? Math.round(c.distance * 10) / 10 : null,
+    })).filter((c) => c.sold > 0)
+    return {
+      value: value && value.price ? Math.round(value.price) : null,
+      valueLow: value && value.priceRangeLow ? Math.round(value.priceRangeLow) : null,
+      valueHigh: value && value.priceRangeHigh ? Math.round(value.priceRangeHigh) : null,
+      rent: rent && rent.rent ? Math.round(rent.rent) : null,
+      comps,
+    }
+  } catch (e) {
+    return null
+  }
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -13,6 +51,16 @@ export default async function handler(req, res) {
   }
 
   const d = (req.body && typeof req.body === 'object') ? req.body : {}
+  const market = await getMarketData(d)
+
+  const marketBlock = market ? `
+REAL MARKET DATA (from RentCast — treat as authoritative, not estimates):
+- Current market value (as-is): ${market.value ? '$' + market.value : 'n/a'}${market.valueLow && market.valueHigh ? ` (range $${market.valueLow}-$${market.valueHigh})` : ''}
+- Estimated long-term monthly rent: ${market.rent ? '$' + market.rent : 'n/a'}
+- Real comparable sales:${market.comps.length ? '\n' + market.comps.map((c) => `  - ${c.address} - $${c.sold}, ${c.sqft} sqft, ${c.beds}bd/${c.baths}ba, ${c.dist} mi`).join('\n') : ' n/a'}
+
+Use these real figures as your factual base. Set monthlyRent to the real rent (adjust only for obvious differences). Treat the current market value as the AS-IS value; compute ARV as the current value PLUS the value added by the described rehab (do not simply reuse current value as ARV). Use the real comparable sales in the "comps" array.
+` : ''
 
   const prompt = `You are an expert U.S. residential real estate investment underwriter.
 Analyze this deal and return your analysis.
@@ -26,8 +74,8 @@ PROPERTY
 - After-repair value (ARV): ${d.arv || '(estimate it)'}
 - Investor strategy: ${d.strategy || '(recommend the best one)'}
 - Investor notes: ${d.notes || 'none'}
-
-Estimate any missing values from typical conditions for that market. These are ESTIMATES, not MLS data.
+${marketBlock}
+Estimate any missing values from typical conditions for that market. Where REAL MARKET DATA is provided above, it overrides generic estimates.
 Keep the numbers internally consistent (max allowable offer ~= 70% of ARV minus rehab; cap rate = annual NOI / price; cash-on-cash from cash invested; etc.).
 
 Return ONLY a single JSON object — no markdown, no prose — with EXACTLY these keys:
@@ -81,6 +129,11 @@ Provide 3-5 comps, an itemized rehab budget (include a contingency line), and 3-
       return
     }
     const data = JSON.parse(text.slice(start, end + 1))
+
+    // Guarantee the real comps are shown when we have them
+    if (market && market.comps && market.comps.length >= 3) data.comps = market.comps
+    data.dataSource = market ? 'RentCast + AI' : 'AI estimate'
+
     res.status(200).json(data)
   } catch (e) {
     res.status(500).json({ error: 'Something went wrong generating the report.', detail: String(e).slice(0, 300) })
