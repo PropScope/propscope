@@ -55,16 +55,9 @@ function Hero() {
             <span className="inline-flex items-center gap-1.5"><ShieldCheck size={15} className="text-brand-600" /> No install</span>
             <span className="inline-flex items-center gap-1.5"><CheckCircle2 size={15} className="text-brand-600" /> Cancel anytime</span>
           </div>
-          <div className="mt-6 flex items-center gap-3">
-            <div className="flex -space-x-2">
-              {['#213f66','#0ea5e9','#10b981','#6366f1','#f59e0b'].map((c,i)=>(
-                <span key={i} className="h-8 w-8 rounded-full ring-2 ring-white" style={{background:c}} />
-              ))}
-            </div>
-            <div className="text-sm">
-              <div className="flex text-amber-400">{[...Array(5)].map((_,i)=><Star key={i} size={13} fill="currentColor" />)}</div>
-              <p className="text-ink-500">Trusted by <span className="font-semibold text-ink-800">3,200+ investors</span></p>
-            </div>
+          <div className="mt-6 flex items-center gap-2 text-sm text-ink-500">
+            <TrendingUp size={16} className="text-brand-600" />
+            <p>Grounded in <span className="font-semibold text-ink-800">real market data</span> — live values, rents, and comps, with AI analysis on top.</p>
           </div>
         </div>
 
@@ -148,10 +141,10 @@ function TrustMarquee() {
 
 function StatsBand() {
   const stats = [
-    { end: 40000, suffix: '+', label: 'Reports generated', decimals: 0, fmt: (v) => Number(v).toLocaleString() },
     { end: 3, prefix: '~', suffix: ' min', label: 'Average report time', decimals: 0 },
-    { end: 2.1, prefix: '$', suffix: 'B', label: 'Property value analyzed', decimals: 1 },
-    { end: 48, label: 'U.S. states covered', decimals: 0 },
+    { end: 50, label: 'U.S. states covered', decimals: 0 },
+    { end: 150, suffix: 'M+', label: 'Properties in our data', decimals: 0 },
+    { end: 12, suffix: '+', label: 'Metrics per report', decimals: 0 },
   ]
   return (
     <Section className="bg-ink-900 text-white">
@@ -357,25 +350,21 @@ function StepsTeaser() {
 }
 
 function Testimonials() {
-  const quotes = [
-    { q: 'I used to spend an hour per deal in spreadsheets. Now I screen ten before lunch.', a: 'Marcus T.', r: 'Wholesaler, Columbus OH' },
-    { q: 'The BRRRR refinance modeling alone is worth the subscription. Saved me from a bad buy.', a: 'Priya S.', r: 'Buy & Hold Investor' },
-    { q: 'My investor clients take me more seriously when I hand them a PropScope report.', a: 'Dana R.', r: 'Real Estate Agent' },
+  const items = [
+    { t: 'Screen more deals, faster', d: 'Turn an address into a full underwrite in about three minutes — no spreadsheet to rebuild.' },
+    { t: 'Grounded in real market data', d: 'Values, rents, and comparable sales pull from live property data, then the analysis is built on top.' },
+    { t: 'Share a clean report', d: 'Hand a seller or partner a branded PDF and a plain-English seller summary in one click.' },
   ]
   return (
     <Section>
-      <SectionHeading eyebrow="What investors say" title="Trusted on real deals" />
+      <SectionHeading eyebrow="Why PropScope" title="Built for real deals" />
       <div className="grid gap-6 md:grid-cols-3">
-        {quotes.map((t, i) => (
-          <Reveal key={t.a} delay={i * 90}>
-            <figure className="card card-hover h-full p-6">
-              <div className="flex gap-0.5 text-amber-400">{[...Array(5)].map((_,k)=><Star key={k} size={15} fill="currentColor" />)}</div>
-              <blockquote className="mt-3 text-ink-700">“{t.q}”</blockquote>
-              <figcaption className="mt-4 text-sm">
-                <span className="font-semibold text-ink-900">{t.a}</span>
-                <span className="text-ink-400"> · {t.r}</span>
-              </figcaption>
-            </figure>
+        {items.map((t, i) => (
+          <Reveal key={t.t} delay={i * 90}>
+            <div className="card card-hover h-full p-6">
+              <p className="font-semibold text-ink-900">{t.t}</p>
+              <p className="mt-2 text-ink-600">{t.d}</p>
+            </div>
           </Reveal>
         ))}
       </div>

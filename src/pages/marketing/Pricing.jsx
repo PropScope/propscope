@@ -27,7 +27,7 @@ export default function Pricing() {
             {[
               [ShieldCheck, 'Not financial advice — just better inputs', 'Every report is a decision aid, with confidence and risk called out.'],
               [RefreshCw, 'Cancel Investor Pro anytime', 'Month-to-month. Keep access through your billing period.'],
-              [Star, 'Loved by 3,200+ investors', 'From first-deal wholesalers to full-time flippers.'],
+              [Star, 'Real market data included', 'Live values, rents, and comps from 150M+ properties power every report.'],
             ].map(([Icon, t, d]) => (
               <Reveal key={t}>
                 <div className="flex items-start gap-3 rounded-2xl bg-ink-50 p-5">

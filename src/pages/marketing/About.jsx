@@ -20,9 +20,9 @@ export default function About() {
 
       <Section className="pt-0">
         <div className="grid gap-6 sm:grid-cols-3">
-          <Stat label="Reports generated" value="40,000+" sub="and counting" tone="brand" />
-          <Stat label="Avg. time per report" value="~3 min" sub="vs. 60+ in a spreadsheet" />
-          <Stat label="Markets covered" value="48 states" sub="U.S. residential" />
+          <Stat label="Average report time" value="~3 min" sub="vs. 60+ in a spreadsheet" tone="brand" />
+          <Stat label="Properties in our data" value="150M+" sub="U.S. residential" />
+          <Stat label="Markets covered" value="50 states" sub="nationwide" />
         </div>
       </Section>
 
