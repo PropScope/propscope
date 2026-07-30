@@ -13,6 +13,7 @@ import Contact from './pages/marketing/Contact.jsx'
 import Terms from './pages/marketing/Terms.jsx'
 import Privacy from './pages/marketing/Privacy.jsx'
 import NotFound from './pages/marketing/NotFound.jsx'
+import SupportWidget from './components/support/SupportWidget.jsx'
 
 import Login from './pages/auth/Login.jsx'
 import Signup from './pages/auth/Signup.jsx'
@@ -82,6 +83,7 @@ export default function App() {
 
         <Route path="*" element={<NotFound />} />
       </Routes>
+      <SupportWidget />
     </>
   )
 }
