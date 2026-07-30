@@ -1,4 +1,4 @@
-// Vercel serverless function — verifies a completed Checkout Session on return from Stripe.
+// Vercel serverless function — returns the live status of a subscription from Stripe.
 
 export default async function handler(req, res) {
   const key = process.env.STRIPE_SECRET_KEY
@@ -8,11 +8,11 @@ export default async function handler(req, res) {
   }
   const id = (req.query && req.query.id) || ''
   if (!id) {
-    res.status(400).json({ error: 'Missing session id.' })
+    res.status(400).json({ error: 'Missing subscription id.' })
     return
   }
   try {
-    const r = await fetch(`https://api.stripe.com/v1/checkout/sessions/${encodeURIComponent(id)}`, {
+    const r = await fetch(`https://api.stripe.com/v1/subscriptions/${encodeURIComponent(id)}`, {
       headers: { Authorization: `Bearer ${key}` },
     })
     const data = await r.json()
@@ -22,10 +22,8 @@ export default async function handler(req, res) {
     }
     res.status(200).json({
       status: data.status,
-      paymentStatus: data.payment_status,
-      email: data.customer_details && data.customer_details.email,
-      customer: data.customer,
-      subscription: data.subscription,
+      cancelAtPeriodEnd: data.cancel_at_period_end,
+      currentPeriodEnd: data.current_period_end,
     })
   } catch (e) {
     res.status(500).json({ error: 'Could not reach Stripe.' })

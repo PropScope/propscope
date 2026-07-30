@@ -1,25 +1,25 @@
 import { useState, useEffect } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { CreditCard, Download, Check, Sparkles, CheckCircle2, X, ShieldCheck } from 'lucide-react'
+import { CreditCard, Check, Sparkles, CheckCircle2, X, ShieldCheck, Settings } from 'lucide-react'
 import PageHeader from '../../components/portal/PageHeader.jsx'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { planById } from '../../lib/plans.js'
 import { usd, dateFmt } from '../../lib/format.js'
-import { startProCheckout, confirmCheckout } from '../../lib/billing.js'
+import { startProCheckout, confirmCheckout, openBillingPortal, getSubscriptionStatus } from '../../lib/billing.js'
 
-const invoices = [
-  { id: 'INV-2026-06', date: '2026-06-02', amount: 497, plan: 'Investor Pro — Monthly' },
-  { id: 'INV-2026-05', date: '2026-05-02', amount: 497, plan: 'Investor Pro — Monthly' },
-]
+const ACTIVE = ['active', 'trialing', 'past_due']
 
 export default function Billing() {
-  const { user, setPlan } = useAuth()
+  const { user, setPlan, updateBilling } = useAuth()
   const [params, setParams] = useSearchParams()
   const [notice, setNotice] = useState('')
   const [subscribing, setSubscribing] = useState(false)
+  const [portalLoading, setPortalLoading] = useState(false)
   const [err, setErr] = useState('')
+  const [subStatus, setSubStatus] = useState(null)
   const current = planById(user?.plan)
 
+  // Handle return from Stripe Checkout
   useEffect(() => {
     if (params.get('canceled')) { setNotice('canceled'); setParams({}, { replace: true }); return }
     const sid = params.get('session_id')
@@ -28,7 +28,7 @@ export default function Billing() {
         try {
           const r = await confirmCheckout(sid)
           if (r.status === 'complete' || r.paymentStatus === 'paid') {
-            await setPlan('investor-pro')
+            await updateBilling({ plan: 'investor-pro', stripeCustomerId: r.customer || '', subscriptionId: r.subscription || '' })
             setNotice('success')
           } else {
             setNotice('pending')
@@ -43,6 +43,26 @@ export default function Billing() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Self-heal: whenever we know a subscription id, pull its real status from Stripe
+  useEffect(() => {
+    if (!user?.subscriptionId) return
+    let active = true
+    ;(async () => {
+      try {
+        const s = await getSubscriptionStatus(user.subscriptionId)
+        if (!active) return
+        setSubStatus(s)
+        const stillActive = ACTIVE.includes(s.status)
+        if (!stillActive && user.plan === 'investor-pro') {
+          await setPlan('deal-analyzer')
+        }
+      } catch {
+        /* ignore — non-blocking */
+      }
+    })()
+    return () => { active = false }
+  }, [user?.subscriptionId])
+
   const subscribe = async () => {
     setSubscribing(true); setErr('')
     try {
@@ -51,6 +71,24 @@ export default function Billing() {
       setErr((e && e.message) || 'Could not start checkout.')
       setSubscribing(false)
     }
+  }
+
+  const manage = async () => {
+    setPortalLoading(true); setErr('')
+    try {
+      await openBillingPortal(user?.stripeCustomerId)
+    } catch (e) {
+      setErr((e && e.message) || 'Could not open the billing portal.')
+      setPortalLoading(false)
+    }
+  }
+
+  const renewalLine = () => {
+    if (!subStatus || !subStatus.currentPeriodEnd) return `${usd(current?.price || 497)}/month · unlimited reports`
+    const when = dateFmt(new Date(subStatus.currentPeriodEnd * 1000).toISOString())
+    return subStatus.cancelAtPeriodEnd
+      ? `${usd(current?.price || 497)}/month · cancels ${when}`
+      : `${usd(current?.price || 497)}/month · renews ${when}`
   }
 
   return (
@@ -83,18 +121,22 @@ export default function Billing() {
                 <Sparkles size={20} className="text-brand-600" /> {current?.name}
               </p>
             </div>
-            {current?.subscription && <span className="badge bg-emerald-100 text-emerald-700"><Check size={12} /> Active</span>}
+            {current?.subscription && (
+              <span className={`badge ${subStatus && subStatus.cancelAtPeriodEnd ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                <Check size={12} /> {subStatus && subStatus.cancelAtPeriodEnd ? 'Ending' : 'Active'}
+              </span>
+            )}
           </div>
           <p className="mt-3 text-sm text-ink-500">
-            {current?.subscription
-              ? `${usd(current.price)}/month · unlimited reports`
-              : 'Per-report plan — pay only when you run a report.'}
+            {current?.subscription ? renewalLine() : 'Per-report plan — pay only when you run a report.'}
           </p>
           <div className="mt-5 flex flex-wrap gap-3">
             {current?.subscription ? (
               <>
-                <Link to="/pricing" className="btn-secondary">Change plan</Link>
-                <button className="btn-ghost text-rose-600 hover:bg-rose-50" disabled title="Cancel/manage via the Stripe portal (coming soon)">Cancel subscription</button>
+                <button onClick={manage} disabled={portalLoading || !user?.stripeCustomerId} className="btn-secondary">
+                  <Settings size={16} /> {portalLoading ? 'Opening…' : 'Manage subscription'}
+                </button>
+                <Link to="/pricing" className="btn-ghost">Compare plans</Link>
               </>
             ) : (
               <>
@@ -103,15 +145,22 @@ export default function Billing() {
               </>
             )}
           </div>
+          {current?.subscription && (
+            <p className="mt-3 text-xs text-ink-400">Update your card, download invoices, or cancel anytime in the secure Stripe portal.</p>
+          )}
         </div>
 
         <div className="card p-6">
           <h3 className="font-semibold text-ink-900">Payment</h3>
           <div className="mt-4 flex items-start gap-3 rounded-xl bg-ink-50 p-4">
             <ShieldCheck size={22} className="mt-0.5 shrink-0 text-emerald-600" />
-            <p className="text-sm text-ink-600">Card details are handled securely by Stripe Checkout — PropScope never sees or stores your card number.</p>
+            <p className="text-sm text-ink-600">Card details are handled securely by Stripe — PropScope never sees or stores your card number.</p>
           </div>
-          {!current?.subscription && (
+          {current?.subscription ? (
+            <button onClick={manage} disabled={portalLoading || !user?.stripeCustomerId} className="btn-secondary mt-4 w-full">
+              <Settings size={16} /> {portalLoading ? 'Opening…' : 'Manage payment & billing'}
+            </button>
+          ) : (
             <button onClick={subscribe} disabled={subscribing} className="btn-primary mt-4 w-full">
               <CreditCard size={16} /> {subscribing ? 'Redirecting…' : 'Subscribe with card'}
             </button>
@@ -134,36 +183,11 @@ export default function Billing() {
 
       <div className="mt-8 card p-6">
         <h3 className="font-semibold text-ink-900">Billing history</h3>
-        {current?.subscription ? (
-          <div className="mt-4 overflow-x-auto">
-            <table className="w-full min-w-[480px] text-sm">
-              <thead>
-                <tr className="border-b border-ink-100 text-left text-xs uppercase tracking-wide text-ink-400">
-                  <th className="py-2 font-medium">Invoice</th>
-                  <th className="py-2 font-medium">Date</th>
-                  <th className="py-2 font-medium">Description</th>
-                  <th className="py-2 font-medium">Amount</th>
-                  <th className="py-2 font-medium text-right">Receipt</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-ink-50">
-                {invoices.map((inv) => (
-                  <tr key={inv.id}>
-                    <td className="py-3 font-medium text-ink-800">{inv.id}</td>
-                    <td className="py-3 text-ink-500">{dateFmt(inv.date)}</td>
-                    <td className="py-3 text-ink-500">{inv.plan}</td>
-                    <td className="py-3 font-semibold text-ink-900">{usd(inv.amount)}</td>
-                    <td className="py-3 text-right">
-                      <button className="inline-flex items-center gap-1 text-brand-600 hover:text-brand-700"><Download size={14} /> PDF</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <p className="mt-3 text-sm text-ink-500">No charges yet. Your invoices will appear here once you subscribe.</p>
-        )}
+        <p className="mt-3 text-sm text-ink-500">
+          {current?.subscription
+            ? 'Your invoices and receipts are available in the Stripe billing portal.'
+            : 'No charges yet. Your invoices will appear here once you subscribe.'}
+        </p>
       </div>
     </>
   )
