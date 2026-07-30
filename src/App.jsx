@@ -10,6 +10,8 @@ import Pricing from './pages/marketing/Pricing.jsx'
 import Faq from './pages/marketing/Faq.jsx'
 import About from './pages/marketing/About.jsx'
 import Contact from './pages/marketing/Contact.jsx'
+import Terms from './pages/marketing/Terms.jsx'
+import Privacy from './pages/marketing/Privacy.jsx'
 import NotFound from './pages/marketing/NotFound.jsx'
 
 import Login from './pages/auth/Login.jsx'
@@ -55,6 +57,8 @@ export default function App() {
           <Route path="/faq" element={<Faq />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
+          <Route path="/terms" element={<Terms />} />
+          <Route path="/privacy" element={<Privacy />} />
         </Route>
 
         {/* Auth */}

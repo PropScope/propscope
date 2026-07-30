@@ -20,7 +20,7 @@ export default function Footer() {
             ['About', '/about'], ['Contact', '/contact'], ['Log in', '/login'], ['Get started', '/signup'],
           ]} />
           <FooterCol title="Legal" links={[
-            ['Privacy', '/faq'], ['Terms', '/faq'], ['Disclaimer', '/faq'],
+            ['Privacy', '/privacy'], ['Terms', '/terms'],
           ]} />
         </div>
         <div className="mt-12 flex flex-col items-start justify-between gap-3 border-t border-ink-200 pt-6 text-sm text-ink-400 sm:flex-row sm:items-center">
