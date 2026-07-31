@@ -4,7 +4,7 @@ import { ArrowLeft, ArrowRight, Check, Loader2, Home, DollarSign, Wrench, Target
 import PageHeader from '../../components/portal/PageHeader.jsx'
 import { PLANS, planById } from '../../lib/plans.js'
 import { usd } from '../../lib/format.js'
-import { generateReport } from '../../lib/reports.js'
+import { generateReport, reportCount } from '../../lib/reports.js'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { startReportCheckout, confirmCheckout } from '../../lib/billing.js'
 
@@ -19,6 +19,7 @@ export default function NewDeal() {
   const [step, setStep] = useState(0)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [freeAvail, setFreeAvail] = useState(false)
   const [form, setForm] = useState({
     address: '', city: '', state: '', zip: '', beds: '', baths: '', sqft: '', year: '',
     purchasePrice: '', rehab: '', rent: '', arv: '',
@@ -43,6 +44,9 @@ export default function NewDeal() {
       if (isPro) {
         const report = await generateReport(buildIntake())
         nav(`/app/reports/${report.id}`)
+      } else if (freeAvail) {
+        const report = await generateReport({ ...buildIntake(), tier: 'deal-check' })
+        nav(`/app/reports/${report.id}`)
       } else {
         localStorage.setItem('ps_pending_deal', JSON.stringify(buildIntake()))
         await startReportCheckout({ tier: form.tier, email: user?.email, userId: user?.id })
@@ -53,6 +57,14 @@ export default function NewDeal() {
       setSubmitting(false)
     }
   }
+
+  // First report is free for non-Pro users who have never generated one.
+  useEffect(() => {
+    if (isPro) { setFreeAvail(false); return }
+    let live = true
+    reportCount().then((n) => { if (live) setFreeAvail(n === 0) }).catch(() => {})
+    return () => { live = false }
+  }, [isPro])
 
   // Returning from a per-report payment: verify, then generate the saved deal
   useEffect(() => {
@@ -70,7 +82,7 @@ export default function NewDeal() {
           if (s.paymentStatus !== 'paid' && s.status !== 'complete') throw new Error('Payment was not completed.')
           const raw = localStorage.getItem('ps_pending_deal')
           if (!raw) throw new Error('Payment received, but the property details were lost. Please re-enter them to generate your report.')
-          const report = await generateReport(JSON.parse(raw))
+          const report = await generateReport(JSON.parse(raw), { paid: true })
           localStorage.removeItem('ps_pending_deal')
           nav(`/app/reports/${report.id}`)
         } catch (e) {
@@ -155,6 +167,11 @@ export default function NewDeal() {
 
         {step === 3 && (
           <Fieldset icon={Wrench} title="Choose your report tier">
+            {freeAvail && (
+              <div className="mb-4 flex items-start gap-2 rounded-xl bg-emerald-50 p-4 text-sm font-medium text-emerald-800">
+                <Sparkles size={18} className="mt-0.5 shrink-0" /> Your first report is on us — no card required. We'll run it as a Deal Check.
+              </div>
+            )}
             <div className="grid gap-3">
               {PLANS.filter((p) => !p.subscription).map((p) => (
                 <button key={p.id} type="button" onClick={() => setForm((f) => ({ ...f, tier: p.id }))}
@@ -172,6 +189,8 @@ export default function NewDeal() {
             <p className="mt-3 text-xs text-ink-400">
               {isPro
                 ? 'Included in your Investor Pro plan — no charge for this report.'
+                : freeAvail
+                ? "Your first report is free — we'll run it as a Deal Check. Paid tiers and Investor Pro unlock after that."
                 : `You'll pay once for this report (${usd(planById(form.tier)?.price)}). Investor Pro includes unlimited reports.`}
             </p>
           </Fieldset>
@@ -192,7 +211,7 @@ export default function NewDeal() {
             <button onClick={next} className="btn-primary">Continue <ArrowRight size={16} /></button>
           ) : (
             <button onClick={submit} disabled={submitting} className="btn-primary">
-              {submitting ? <><Loader2 size={16} className="animate-spin" /> Working…</> : (isPro ? <>Generate report <Sparkles size={16} /></> : <>Pay {usd(planById(form.tier)?.price)} &amp; generate <Sparkles size={16} /></>)}
+              {submitting ? <><Loader2 size={16} className="animate-spin" /> Working…</> : (isPro ? <>Generate report <Sparkles size={16} /></> : freeAvail ? <>Generate free report <Sparkles size={16} /></> : <>Pay {usd(planById(form.tier)?.price)} &amp; generate <Sparkles size={16} /></>)}
             </button>
           )}
         </div>

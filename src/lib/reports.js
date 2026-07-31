@@ -9,11 +9,13 @@ export function flatten(row) {
 }
 
 // Call the AI function, then save the result to Supabase for this user.
-export async function generateReport(input) {
+export async function generateReport(input, { paid = false } = {}) {
+  const { data: sess } = await supabase.auth.getSession()
+  const token = sess && sess.session && sess.session.access_token
   const res = await fetch('/api/generate-report', {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify(input),
+    headers: { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}) },
+    body: JSON.stringify({ ...input, paid }),
   })
   if (!res.ok) {
     let msg = 'The report could not be generated. Please try again.'
@@ -44,6 +46,13 @@ export async function generateReport(input) {
   const { data, error } = await supabase.from('reports').insert(record).select().single()
   if (error) throw error
   return flatten(data)
+}
+
+// How many reports this user already has (used to grant the first one free).
+export async function reportCount() {
+  const { count, error } = await supabase.from('reports').select('id', { count: 'exact', head: true })
+  if (error) throw error
+  return count || 0
 }
 
 export async function listReports() {

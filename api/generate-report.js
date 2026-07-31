@@ -2,6 +2,8 @@
 // The secret ANTHROPIC_API_KEY lives only here (server-side), never in the browser.
 // If RENTCAST_API_KEY is set, real market data (value, rent, comps) grounds the analysis.
 
+const SUPABASE_URL = 'https://iplngnllrvivrbjxcovk.supabase.co'
+
 // Pull real market data from RentCast for this address. Returns null on any problem
 // so report generation always continues (falls back to AI-only estimates).
 async function getMarketData(d) {
@@ -48,6 +50,34 @@ export default async function handler(req, res) {
   if (!key) {
     res.status(500).json({ error: 'Server is missing the Anthropic API key.' })
     return
+  }
+
+  // --- Entitlement: Investor Pro = unlimited. Everyone else gets ONE free report, then pays. ---
+  const svc = process.env.SUPABASE_SERVICE_ROLE_KEY
+  const token = (req.headers.authorization || '').replace(/^Bearer\s+/i, '')
+  if (svc) {
+    if (!token) { res.status(401).json({ error: 'Please sign in to generate a report.' }); return }
+    let entitled = false
+    try {
+      const ures = await fetch(`${SUPABASE_URL}/auth/v1/user`, { headers: { apikey: svc, Authorization: `Bearer ${token}` } })
+      const u = ures.ok ? await ures.json() : null
+      if (u && u.id) {
+        const isPro = u.user_metadata && u.user_metadata.plan === 'investor-pro'
+        if (isPro) {
+          entitled = true
+        } else {
+          const cr = await fetch(`${SUPABASE_URL}/rest/v1/reports?select=id&user_id=eq.${u.id}`, { headers: { apikey: svc, Authorization: `Bearer ${svc}` } })
+          const rows = cr.ok ? await cr.json() : []
+          const used = Array.isArray(rows) ? rows.length : 0
+          if (used === 0) entitled = true                                   // first report is free
+          else if (req.body && req.body.paid === true) entitled = true      // paid per-report
+        }
+      }
+    } catch (e) { entitled = true } // never hard-block a real user on a transient check failure
+    if (!entitled) {
+      res.status(402).json({ error: 'You have used your free report. Choose a report tier to continue, or upgrade to Investor Pro for unlimited reports.' })
+      return
+    }
   }
 
   const d = (req.body && typeof req.body === 'object') ? req.body : {}
