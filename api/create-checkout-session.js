@@ -1,7 +1,8 @@
 // Vercel serverless function — creates a Stripe Checkout Session for the Investor Pro subscription.
 // The secret STRIPE_SECRET_KEY lives only here (server-side), never in the browser.
 
-const INVESTOR_PRO_CENTS = 49700 // $497 / month
+const MONTHLY_CENTS = 49700 // $497 / month
+const ANNUAL_CENTS = 476400 // $4,764 / year = $397/mo (20% off)
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -16,15 +17,17 @@ export default async function handler(req, res) {
 
   const d = (req.body && typeof req.body === 'object') ? req.body : {}
   const origin = d.origin || req.headers.origin || `https://${req.headers.host}`
+  const interval = d.interval === 'year' ? 'year' : 'month'
+  const amount = interval === 'year' ? ANNUAL_CENTS : MONTHLY_CENTS
 
   const p = new URLSearchParams()
   p.append('mode', 'subscription')
   p.append('line_items[0][quantity]', '1')
   p.append('line_items[0][price_data][currency]', 'usd')
-  p.append('line_items[0][price_data][unit_amount]', String(INVESTOR_PRO_CENTS))
-  p.append('line_items[0][price_data][recurring][interval]', 'month')
+  p.append('line_items[0][price_data][unit_amount]', String(amount))
+  p.append('line_items[0][price_data][recurring][interval]', interval)
   p.append('line_items[0][price_data][product_data][name]', 'PropScope Investor Pro')
-  p.append('line_items[0][price_data][product_data][description]', 'Unlimited Deal Intelligence reports')
+  p.append('line_items[0][price_data][product_data][description]', interval === 'year' ? 'Unlimited Deal Intelligence reports — billed annually' : 'Unlimited Deal Intelligence reports')
   p.append('success_url', `${origin}/app/billing?success=1&session_id={CHECKOUT_SESSION_ID}`)
   p.append('cancel_url', `${origin}/app/billing?canceled=1`)
   p.append('allow_promotion_codes', 'true')

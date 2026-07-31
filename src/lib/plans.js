@@ -63,6 +63,9 @@ export const PLANS = [
     cta: 'Start Investor Pro',
     highlight: false,
     subscription: true,
+    annualMonthly: 397,
+    annualTotal: 4764,
+    annualSaved: 1200,
     features: [
       'Unlimited Deal Intelligence reports',
       'Portfolio dashboard',

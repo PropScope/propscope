@@ -50,6 +50,9 @@ function Hero() {
             </Link>
             <Link to="/how-it-works" className="btn-secondary px-6 py-3 text-base">Watch how it works</Link>
           </div>
+          <p className="mt-4 inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-1.5 text-sm font-semibold text-emerald-800 ring-1 ring-inset ring-emerald-100">
+            <Sparkles size={15} /> Your first report is free — no credit card required.
+          </p>
           <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-ink-500">
             <span className="inline-flex items-center gap-1.5"><Clock size={15} className="text-brand-600" /> ~3 min per report</span>
             <span className="inline-flex items-center gap-1.5"><ShieldCheck size={15} className="text-brand-600" /> No install</span>

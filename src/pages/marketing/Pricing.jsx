@@ -19,6 +19,9 @@ export default function Pricing() {
             <p className="mt-4 text-lg text-ink-500">
               Start with a single report. Upgrade to Investor Pro when you're analyzing deals every week.
             </p>
+            <p className="mt-4 inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-1.5 text-sm font-semibold text-emerald-800 ring-1 ring-inset ring-emerald-100">
+              <Star size={14} /> Your first report is free — no card required.
+            </p>
           </div>
           <PricingCards />
 

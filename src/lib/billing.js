@@ -1,10 +1,10 @@
 // Client helpers for Stripe Checkout (test mode).
 
-export async function startProCheckout({ email, userId } = {}) {
+export async function startProCheckout({ email, userId, interval } = {}) {
   const res = await fetch('/api/create-checkout-session', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ email, userId, origin: window.location.origin }),
+    body: JSON.stringify({ email, userId, interval, origin: window.location.origin }),
   })
   const data = await res.json().catch(() => ({}))
   if (!res.ok || !data.url) throw new Error(data.error || 'Could not start checkout.')

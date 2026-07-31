@@ -17,7 +17,9 @@ export default function Billing() {
   const [portalLoading, setPortalLoading] = useState(false)
   const [err, setErr] = useState('')
   const [subStatus, setSubStatus] = useState(null)
+  const [annual, setAnnual] = useState(params.get('billing') !== 'month')
   const current = planById(user?.plan)
+  const pro = planById('investor-pro')
 
   // Handle return from Stripe Checkout
   useEffect(() => {
@@ -66,7 +68,7 @@ export default function Billing() {
   const subscribe = async () => {
     setSubscribing(true); setErr('')
     try {
-      await startProCheckout({ email: user?.email, userId: user?.id })
+      await startProCheckout({ email: user?.email, userId: user?.id, interval: annual ? 'year' : 'month' })
     } catch (e) {
       setErr((e && e.message) || 'Could not start checkout.')
       setSubscribing(false)
@@ -130,6 +132,24 @@ export default function Billing() {
           <p className="mt-3 text-sm text-ink-500">
             {current?.subscription ? renewalLine() : 'Per-report plan — pay only when you run a report.'}
           </p>
+          {!current?.subscription && (
+            <div className="mt-5 rounded-xl bg-ink-50 p-4">
+              <div className="inline-flex items-center gap-1 rounded-full bg-white p-1 text-sm font-semibold ring-1 ring-ink-200">
+                <button type="button" onClick={() => setAnnual(false)} className={`rounded-full px-3 py-1 transition ${!annual ? 'bg-brand-600 text-white' : 'text-ink-500'}`}>Monthly</button>
+                <button type="button" onClick={() => setAnnual(true)} className={`flex items-center gap-1.5 rounded-full px-3 py-1 transition ${annual ? 'bg-brand-600 text-white' : 'text-ink-500'}`}>Annual <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700">-20%</span></button>
+              </div>
+              <p className="mt-3 flex items-baseline gap-1">
+                {annual && <span className="mr-1 text-base font-semibold text-ink-400 line-through">{usd(pro?.price)}</span>}
+                <span className="text-3xl font-extrabold text-ink-900">{usd(annual ? pro?.annualMonthly : pro?.price)}</span>
+                <span className="text-sm text-ink-400">/mo</span>
+              </p>
+              <p className="mt-1 text-sm text-ink-500">
+                {annual
+                  ? `Billed ${usd(pro?.annualTotal)}/year — you save ${usd(pro?.annualSaved)} vs monthly.`
+                  : `Billed monthly. Switch to annual and save ${usd(pro?.annualSaved)}/year.`}
+              </p>
+            </div>
+          )}
           <div className="mt-5 flex flex-wrap gap-3">
             {current?.subscription ? (
               <>
@@ -174,7 +194,7 @@ export default function Billing() {
           <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
             <div>
               <h3 className="text-lg font-bold">Running deals every week?</h3>
-              <p className="text-sm text-brand-50/90">Investor Pro gives you unlimited reports for {usd(497)}/mo.</p>
+              <p className="text-sm text-brand-50/90">Investor Pro gives you unlimited reports — from {usd(397)}/mo billed annually.</p>
             </div>
             <button onClick={subscribe} disabled={subscribing} className="btn bg-white text-brand-700 hover:bg-brand-50">{subscribing ? 'Redirecting…' : 'Upgrade to Pro'}</button>
           </div>
