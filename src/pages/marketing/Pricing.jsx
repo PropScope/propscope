@@ -58,20 +58,21 @@ export default function Pricing() {
 
 function CompareTable() {
   const rows = [
-    ['Property & comps snapshot', true, true, true, true],
-    ['ARV & rent estimate', true, true, true, true],
-    ['Max allowable offer', true, true, true, true],
-    ['Full fix & flip model', false, true, true, true],
-    ['Buy & hold cash flow', false, true, true, true],
-    ['Rehab budget estimator', false, true, true, true],
-    ['Risk & sensitivity scoring', false, true, true, true],
-    ['BRRRR strategy model', false, false, true, true],
-    ['Executive memo', false, false, true, true],
-    ['Unlimited reports', false, false, false, true],
-    ['Portfolio dashboard', false, false, false, true],
-    ['Team seats', false, false, false, true],
+    ['Reports per month', '3', '25', '250'],
+    ['Full AI investment report', true, true, true],
+    ['Real comps, ARV & rent estimate', true, true, true],
+    ['Max allowable offer & cash flow', true, true, true],
+    ['Fix & flip, buy & hold & BRRRR', true, true, true],
+    ['Branded PDF reports', true, true, true],
+    ['Report history & dashboard', false, true, true],
+    ['Priority support', false, true, true],
+    ['Early access to new features', false, false, true],
+    ['Team seats', false, false, 'soon'],
+    ['Saved buy-box & auto-scoring', false, false, 'soon'],
+    ['Bulk CSV import', false, false, 'soon'],
+    ['Portfolio dashboard', false, false, 'soon'],
   ]
-  const cols = ['Deal Check', 'Deal Analyzer', 'Deal Intelligence', 'Investor Pro']
+  const cols = ['Deal Check', 'Deal Analyzer', 'Investor Pro']
   return (
     <div className="overflow-x-auto rounded-2xl ring-1 ring-ink-200">
       <table className="w-full min-w-[640px] border-collapse text-sm">
@@ -79,8 +80,8 @@ function CompareTable() {
           <tr className="bg-ink-50">
             <th className="py-4 pl-5 text-left font-semibold text-ink-900">Feature</th>
             {cols.map((c, i) => (
-              <th key={c} className={`px-3 py-4 text-center font-semibold ${i === 2 ? 'text-brand-700' : 'text-ink-700'}`}>
-                {c}{i === 2 && <span className="ml-1 align-middle text-[10px] font-bold uppercase text-brand-500">★</span>}
+              <th key={c} className={`px-3 py-4 text-center font-semibold ${i === 1 ? 'text-brand-700' : 'text-ink-700'}`}>
+                {c}{i === 1 && <span className="ml-1 align-middle text-[10px] font-bold uppercase text-brand-500">★</span>}
               </th>
             ))}
           </tr>
@@ -90,8 +91,14 @@ function CompareTable() {
             <tr key={r[0]} className={ri % 2 ? 'bg-white' : 'bg-ink-50/40'}>
               <td className="py-3 pl-5 text-ink-600">{r[0]}</td>
               {r.slice(1).map((v, i) => (
-                <td key={i} className={`px-3 py-3 text-center ${i === 2 ? 'bg-brand-50/40' : ''}`}>
-                  {v ? <span className="inline-grid h-5 w-5 place-items-center rounded-full bg-brand-100 text-brand-700">✓</span> : <span className="text-ink-300">—</span>}
+                <td key={i} className={`px-3 py-3 text-center ${i === 1 ? 'bg-brand-50/40' : ''}`}>
+                  {v === 'soon'
+                    ? <span className="text-[10px] font-semibold uppercase tracking-wide text-amber-500">Soon</span>
+                    : typeof v === 'string'
+                    ? <span className="font-semibold text-ink-800">{v}</span>
+                    : v
+                    ? <span className="inline-grid h-5 w-5 place-items-center rounded-full bg-brand-100 text-brand-700">✓</span>
+                    : <span className="text-ink-300">—</span>}
                 </td>
               ))}
             </tr>

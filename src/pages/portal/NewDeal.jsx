@@ -1,103 +1,79 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, Check, Loader2, Home, DollarSign, Wrench, Target, Sparkles } from 'lucide-react'
+import { useNavigate, Link } from 'react-router-dom'
+import { ArrowLeft, ArrowRight, Check, Loader2, Home, DollarSign, Target, Sparkles, Lock } from 'lucide-react'
 import PageHeader from '../../components/portal/PageHeader.jsx'
-import { PLANS, planById } from '../../lib/plans.js'
-import { usd } from '../../lib/format.js'
-import { generateReport, reportCount } from '../../lib/reports.js'
+import { planById, capForPlan } from '../../lib/plans.js'
+import { generateReport, reportCount, monthlyReportCount } from '../../lib/reports.js'
 import { useAuth } from '../../context/AuthContext.jsx'
-import { startReportCheckout, confirmCheckout } from '../../lib/billing.js'
 
-const steps = ['Property', 'Numbers', 'Strategy', 'Report tier']
+const steps = ['Property', 'Numbers', 'Strategy']
 const strategies = ['Fix & Flip', 'Buy & Hold', 'BRRRR', 'Not sure — recommend one']
 
 export default function NewDeal() {
   const nav = useNavigate()
   const { user } = useAuth()
-  const [params, setParams] = useSearchParams()
-  const isPro = user?.plan === 'investor-pro'
+  const plan = planById(user?.plan)
+  const cap = capForPlan(user?.plan)
   const [step, setStep] = useState(0)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
-  const [freeAvail, setFreeAvail] = useState(false)
+  const [usage, setUsage] = useState(null) // { total, month }
   const [form, setForm] = useState({
     address: '', city: '', state: '', zip: '', beds: '', baths: '', sqft: '', year: '',
     purchasePrice: '', rehab: '', rent: '', arv: '',
-    strategy: 'BRRRR', tier: 'deal-analyzer', notes: '',
+    strategy: 'BRRRR', notes: '',
   })
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
-
   const next = () => setStep((s) => Math.min(s + 1, steps.length - 1))
   const back = () => setStep((s) => Math.max(s - 1, 0))
+
+  useEffect(() => {
+    let live = true
+    Promise.all([reportCount(), monthlyReportCount()])
+      .then(([total, month]) => { if (live) setUsage({ total, month }) })
+      .catch(() => { if (live) setUsage({ total: 1, month: 0 }) })
+    return () => { live = false }
+  }, [])
+
+  const freeAvail = !!usage && usage.total === 0
+  const withinCap = !!plan && !!usage && usage.month < cap
+  const canGenerate = freeAvail || withinCap
 
   const buildIntake = () => ({
     address: form.address, city: form.city, state: form.state, zip: form.zip,
     beds: form.beds, baths: form.baths, sqft: form.sqft, year: form.year,
     purchasePrice: form.purchasePrice, rehab: form.rehab, rent: form.rent, arv: form.arv,
-    strategy: form.strategy, tier: form.tier, notes: form.notes,
+    strategy: form.strategy, notes: form.notes,
+    tier: plan ? plan.id : 'deal-check',
   })
 
   const submit = async () => {
-    setSubmitting(true)
-    setError('')
+    setSubmitting(true); setError('')
     try {
-      if (isPro) {
-        const report = await generateReport(buildIntake())
-        nav(`/app/reports/${report.id}`)
-      } else if (freeAvail) {
-        const report = await generateReport({ ...buildIntake(), tier: 'deal-check' })
-        nav(`/app/reports/${report.id}`)
-      } else {
-        localStorage.setItem('ps_pending_deal', JSON.stringify(buildIntake()))
-        await startReportCheckout({ tier: form.tier, email: user?.email, userId: user?.id })
-        // browser redirects to Stripe
-      }
+      const report = await generateReport(buildIntake())
+      nav(`/app/reports/${report.id}`)
     } catch (err) {
       setError((err && err.message) || 'Something went wrong.')
       setSubmitting(false)
     }
   }
 
-  // First report is free for non-Pro users who have never generated one.
-  useEffect(() => {
-    if (isPro) { setFreeAvail(false); return }
-    let live = true
-    reportCount().then((n) => { if (live) setFreeAvail(n === 0) }).catch(() => {})
-    return () => { live = false }
-  }, [isPro])
-
-  // Returning from a per-report payment: verify, then generate the saved deal
-  useEffect(() => {
-    if (params.get('canceled')) {
-      setError('Payment canceled — your report was not generated.')
-      setParams({}, { replace: true })
-      return
-    }
-    const sid = params.get('session_id')
-    if (params.get('paid') && sid) {
-      ;(async () => {
-        setSubmitting(true); setError('')
-        try {
-          const s = await confirmCheckout(sid)
-          if (s.paymentStatus !== 'paid' && s.status !== 'complete') throw new Error('Payment was not completed.')
-          const raw = localStorage.getItem('ps_pending_deal')
-          if (!raw) throw new Error('Payment received, but the property details were lost. Please re-enter them to generate your report.')
-          const report = await generateReport(JSON.parse(raw), { paid: true })
-          localStorage.removeItem('ps_pending_deal')
-          nav(`/app/reports/${report.id}`)
-        } catch (e) {
-          setError((e && e.message) || 'Something went wrong after payment.')
-          setSubmitting(false)
-          setParams({}, { replace: true })
-        }
-      })()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  const usageNote = () => {
+    if (!usage) return 'Checking your plan…'
+    if (freeAvail) return 'Your first report is on us — free, no card required.'
+    if (plan) return `${usage.month} of ${cap} reports used this month on ${plan.name}.`
+    return 'Your free report has been used. Choose a plan to keep analyzing deals.'
+  }
 
   return (
     <>
       <PageHeader title="New deal analysis" subtitle="Tell us about the property and we'll build the report." />
+
+      <div className={`mb-6 flex items-center gap-2 rounded-xl px-4 py-3 text-sm ${
+        canGenerate ? 'bg-emerald-50 text-emerald-800' : 'bg-amber-50 text-amber-800'
+      }`}>
+        {canGenerate ? <Sparkles size={16} /> : <Lock size={16} />} {usageNote()}
+      </div>
 
       {/* Stepper */}
       <div className="mb-8 flex items-center">
@@ -162,37 +138,14 @@ export default function NewDeal() {
             <Field label="Notes for the analysis (optional)" className="mt-4">
               <textarea rows={3} className="input" placeholder="Anything specific you want the report to weigh?" value={form.notes} onChange={set('notes')} />
             </Field>
-          </Fieldset>
-        )}
 
-        {step === 3 && (
-          <Fieldset icon={Wrench} title="Choose your report tier">
-            {freeAvail && (
-              <div className="mb-4 flex items-start gap-2 rounded-xl bg-emerald-50 p-4 text-sm font-medium text-emerald-800">
-                <Sparkles size={18} className="mt-0.5 shrink-0" /> Your first report is on us — no card required. We'll run it as a Deal Check.
+            {!canGenerate && usage && (
+              <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                {plan
+                  ? `You've used all ${cap} reports on ${plan.name} this month. Upgrade to a higher plan to run more — or they reset next month.`
+                  : 'Your free report has been used. Subscribe to a plan to keep running deal analyses.'}
               </div>
             )}
-            <div className="grid gap-3">
-              {PLANS.filter((p) => !p.subscription).map((p) => (
-                <button key={p.id} type="button" onClick={() => setForm((f) => ({ ...f, tier: p.id }))}
-                  className={`flex items-center justify-between rounded-xl border p-4 text-left transition ${
-                    form.tier === p.id ? 'border-brand-500 bg-brand-50 ring-1 ring-brand-500' : 'border-ink-200 hover:border-ink-300'
-                  }`}>
-                  <div>
-                    <p className="font-semibold text-ink-900">{p.name}</p>
-                    <p className="text-sm text-ink-500">{p.tagline}</p>
-                  </div>
-                  <span className="text-lg font-bold text-ink-900">{usd(p.price)}</span>
-                </button>
-              ))}
-            </div>
-            <p className="mt-3 text-xs text-ink-400">
-              {isPro
-                ? 'Included in your Investor Pro plan — no charge for this report.'
-                : freeAvail
-                ? "Your first report is free — we'll run it as a Deal Check. Paid tiers and Investor Pro unlock after that."
-                : `You'll pay once for this report (${usd(planById(form.tier)?.price)}). Investor Pro includes unlimited reports.`}
-            </p>
           </Fieldset>
         )}
 
@@ -209,10 +162,12 @@ export default function NewDeal() {
           </button>
           {step < steps.length - 1 ? (
             <button onClick={next} className="btn-primary">Continue <ArrowRight size={16} /></button>
-          ) : (
-            <button onClick={submit} disabled={submitting} className="btn-primary">
-              {submitting ? <><Loader2 size={16} className="animate-spin" /> Working…</> : (isPro ? <>Generate report <Sparkles size={16} /></> : freeAvail ? <>Generate free report <Sparkles size={16} /></> : <>Pay {usd(planById(form.tier)?.price)} &amp; generate <Sparkles size={16} /></>)}
+          ) : canGenerate ? (
+            <button onClick={submit} disabled={submitting || !usage} className="btn-primary">
+              {submitting ? <><Loader2 size={16} className="animate-spin" /> Working…</> : <>{freeAvail ? 'Generate free report' : 'Generate report'} <Sparkles size={16} /></>}
             </button>
+          ) : (
+            <Link to="/app/billing" className="btn-primary">Choose a plan <ArrowRight size={16} /></Link>
           )}
         </div>
       </div>

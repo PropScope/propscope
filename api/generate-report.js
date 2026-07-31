@@ -52,30 +52,39 @@ export default async function handler(req, res) {
     return
   }
 
-  // --- Entitlement: Investor Pro = unlimited. Everyone else gets ONE free report, then pays. ---
+  // --- Entitlement: paid plans get a monthly report cap; unpaid users get ONE free report, then must subscribe. ---
+  const CAPS = { 'deal-check': 3, 'deal-analyzer': 25, 'investor-pro': 250 }
   const svc = process.env.SUPABASE_SERVICE_ROLE_KEY
   const token = (req.headers.authorization || '').replace(/^Bearer\s+/i, '')
   if (svc) {
     if (!token) { res.status(401).json({ error: 'Please sign in to generate a report.' }); return }
     let entitled = false
+    let limitMsg = 'This report requires an active plan.'
     try {
       const ures = await fetch(`${SUPABASE_URL}/auth/v1/user`, { headers: { apikey: svc, Authorization: `Bearer ${token}` } })
       const u = ures.ok ? await ures.json() : null
       if (u && u.id) {
-        const isPro = u.user_metadata && u.user_metadata.plan === 'investor-pro'
-        if (isPro) {
-          entitled = true
-        } else {
-          const cr = await fetch(`${SUPABASE_URL}/rest/v1/reports?select=id&user_id=eq.${u.id}`, { headers: { apikey: svc, Authorization: `Bearer ${svc}` } })
+        const plan = (u.user_metadata && u.user_metadata.plan) || 'free'
+        const auth = { apikey: svc, Authorization: `Bearer ${svc}` }
+        if (CAPS[plan]) {
+          const now = new Date()
+          const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString()
+          const cr = await fetch(`${SUPABASE_URL}/rest/v1/reports?select=id&user_id=eq.${u.id}&created_at=gte.${monthStart}`, { headers: auth })
           const rows = cr.ok ? await cr.json() : []
           const used = Array.isArray(rows) ? rows.length : 0
-          if (used === 0) entitled = true                                   // first report is free
-          else if (req.body && req.body.paid === true) entitled = true      // paid per-report
+          if (used < CAPS[plan]) entitled = true
+          else limitMsg = `You've used all ${CAPS[plan]} reports on your plan this month. Upgrade for more, or they reset next month.`
+        } else {
+          const cr = await fetch(`${SUPABASE_URL}/rest/v1/reports?select=id&user_id=eq.${u.id}`, { headers: auth })
+          const rows = cr.ok ? await cr.json() : []
+          const total = Array.isArray(rows) ? rows.length : 0
+          if (total === 0) entitled = true // first report is free
+          else limitMsg = 'Your free report has been used. Subscribe to a plan to keep analyzing deals.'
         }
       }
     } catch (e) { entitled = true } // never hard-block a real user on a transient check failure
     if (!entitled) {
-      res.status(402).json({ error: 'You have used your free report. Choose a report tier to continue, or upgrade to Investor Pro for unlimited reports.' })
+      res.status(402).json({ error: limitMsg })
       return
     }
   }

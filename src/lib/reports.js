@@ -55,6 +55,16 @@ export async function reportCount() {
   return count || 0
 }
 
+// Reports run in the current calendar month (for the usage meter and monthly cap).
+export async function monthlyReportCount() {
+  const now = new Date()
+  const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString()
+  const { count, error } = await supabase
+    .from('reports').select('id', { count: 'exact', head: true }).gte('created_at', monthStart)
+  if (error) throw error
+  return count || 0
+}
+
 export async function listReports() {
   const { data, error } = await supabase.from('reports').select('*').order('created_at', { ascending: false })
   if (error) throw error

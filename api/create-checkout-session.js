@@ -1,8 +1,12 @@
-// Vercel serverless function — creates a Stripe Checkout Session for the Investor Pro subscription.
+// Vercel serverless function — creates a Stripe Checkout Session for a PropScope subscription plan.
 // The secret STRIPE_SECRET_KEY lives only here (server-side), never in the browser.
 
-const MONTHLY_CENTS = 49700 // $497 / month
-const ANNUAL_CENTS = 476400 // $4,764 / year = $397/mo (20% off)
+// Amounts in cents. Annual = 12 x the annual monthly rate (a true 20% off the monthly price).
+const PRICING = {
+  'deal-check':    { name: 'PropScope Deal Check',    month: 3600,  year: 34800 },
+  'deal-analyzer': { name: 'PropScope Deal Analyzer', month: 9900,  year: 94800 },
+  'investor-pro':  { name: 'PropScope Investor Pro',  month: 24900, year: 238800 },
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -17,18 +21,21 @@ export default async function handler(req, res) {
 
   const d = (req.body && typeof req.body === 'object') ? req.body : {}
   const origin = d.origin || req.headers.origin || `https://${req.headers.host}`
+  const plan = PRICING[d.plan] ? d.plan : 'deal-analyzer'
+  const info = PRICING[plan]
   const interval = d.interval === 'year' ? 'year' : 'month'
-  const amount = interval === 'year' ? ANNUAL_CENTS : MONTHLY_CENTS
+  const amount = interval === 'year' ? info.year : info.month
+  const stripeInterval = interval === 'year' ? 'year' : 'month'
 
   const p = new URLSearchParams()
   p.append('mode', 'subscription')
   p.append('line_items[0][quantity]', '1')
   p.append('line_items[0][price_data][currency]', 'usd')
   p.append('line_items[0][price_data][unit_amount]', String(amount))
-  p.append('line_items[0][price_data][recurring][interval]', interval)
-  p.append('line_items[0][price_data][product_data][name]', 'PropScope Investor Pro')
-  p.append('line_items[0][price_data][product_data][description]', interval === 'year' ? 'Unlimited Deal Intelligence reports — billed annually' : 'Unlimited Deal Intelligence reports')
-  p.append('success_url', `${origin}/app/billing?success=1&session_id={CHECKOUT_SESSION_ID}`)
+  p.append('line_items[0][price_data][recurring][interval]', stripeInterval)
+  p.append('line_items[0][price_data][product_data][name]', info.name + (interval === 'year' ? ' (annual)' : ''))
+  p.append('line_items[0][price_data][product_data][description]', 'PropScope subscription')
+  p.append('success_url', `${origin}/app/billing?success=1&plan=${plan}&session_id={CHECKOUT_SESSION_ID}`)
   p.append('cancel_url', `${origin}/app/billing?canceled=1`)
   p.append('allow_promotion_codes', 'true')
   p.append('billing_address_collection', 'auto')

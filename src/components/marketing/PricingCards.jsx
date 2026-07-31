@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Check, X, Sparkles } from 'lucide-react'
+import { Check, Sparkles, Clock } from 'lucide-react'
 import { PLANS } from '../../lib/plans.js'
 import { usd } from '../../lib/format.js'
 import Reveal from '../ui/Reveal.jsx'
@@ -10,38 +10,28 @@ export default function PricingCards({ ctaTo = '/signup' }) {
 
   return (
     <>
-      {/* Monthly / Annual toggle (affects the Investor Pro subscription only) */}
+      {/* Monthly / Annual toggle */}
       <div className="mb-8 flex justify-center">
         <div className="inline-flex items-center gap-1 rounded-full bg-ink-100 p-1 text-sm font-semibold">
-          <button
-            type="button"
-            onClick={() => setAnnual(false)}
+          <button type="button" onClick={() => setAnnual(false)}
             className={`rounded-full px-4 py-1.5 transition ${!annual ? 'bg-white text-ink-900 shadow' : 'text-ink-500 hover:text-ink-700'}`}>
             Monthly
           </button>
-          <button
-            type="button"
-            onClick={() => setAnnual(true)}
+          <button type="button" onClick={() => setAnnual(true)}
             className={`flex items-center gap-1.5 rounded-full px-4 py-1.5 transition ${annual ? 'bg-white text-ink-900 shadow' : 'text-ink-500 hover:text-ink-700'}`}>
-            Annual
-            <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[11px] font-bold text-emerald-700">Save 20%</span>
+            Annual <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[11px] font-bold text-emerald-700">Save 20%</span>
           </button>
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-4">
+      <div className="grid gap-6 lg:grid-cols-3">
         {PLANS.map((plan, i) => {
-          const isSub = !!plan.subscription
-          const showAnnual = isSub && annual
-          const priceNum = showAnnual ? plan.annualMonthly : plan.price
+          const price = annual ? plan.annualMonthly : plan.monthly
           return (
             <Reveal key={plan.id} delay={i * 90} className="h-full">
-              <div
-                className={`relative flex h-full flex-col rounded-2xl p-6 transition duration-200 hover:-translate-y-1.5 ${
-                  plan.highlight
-                    ? 'bg-ink-900 text-white ring-2 ring-brand-500 shadow-xl hover:shadow-2xl'
-                    : 'card hover:shadow-lg hover:ring-brand-300'
-                }`}>
+              <div className={`relative flex h-full flex-col rounded-2xl p-6 transition duration-200 hover:-translate-y-1.5 ${
+                plan.highlight ? 'bg-ink-900 text-white ring-2 ring-brand-500 shadow-xl hover:shadow-2xl' : 'card hover:shadow-lg hover:ring-brand-300'
+              }`}>
                 {plan.highlight && (
                   <span className="absolute -top-3 left-1/2 -translate-x-1/2 badge bg-brand-500 text-white shadow-md">
                     <Sparkles size={12} /> Most popular
@@ -51,24 +41,18 @@ export default function PricingCards({ ctaTo = '/signup' }) {
                 <p className={`mt-1 min-h-[40px] text-sm ${plan.highlight ? 'text-ink-300' : 'text-ink-500'}`}>{plan.tagline}</p>
 
                 <div className="mt-5 flex items-baseline gap-1">
-                  {showAnnual && (
-                    <span className="mr-1 text-lg font-semibold text-ink-400 line-through">{usd(plan.price)}</span>
-                  )}
-                  <span className={`text-4xl font-extrabold ${plan.highlight ? 'text-white' : 'text-ink-900'}`}>
-                    {usd(priceNum)}
-                  </span>
-                  <span className="text-sm text-ink-400">{isSub ? '/mo' : ''}</span>
+                  {annual && <span className="mr-1 text-lg font-semibold text-ink-400 line-through">{usd(plan.monthly)}</span>}
+                  <span className={`text-4xl font-extrabold ${plan.highlight ? 'text-white' : 'text-ink-900'}`}>{usd(price)}</span>
+                  <span className="text-sm text-ink-400">/mo</span>
                 </div>
-                {isSub ? (
-                  <p className={`mt-1 text-xs ${showAnnual ? 'font-semibold text-emerald-600' : 'text-ink-400'}`}>
-                    {showAnnual ? `Billed ${usd(plan.annualTotal)}/yr — save ${usd(plan.annualSaved)}` : 'Billed monthly'}
-                  </p>
-                ) : (
-                  <p className="mt-1 text-xs text-ink-400">{plan.cadence}</p>
-                )}
+                <p className={`mt-1 text-xs ${annual ? 'font-semibold text-emerald-600' : 'text-ink-400'}`}>
+                  {annual ? `Billed ${usd(plan.annualTotal)}/yr — save ${usd(plan.annualSaved)}` : 'Billed monthly'}
+                </p>
+                <p className={`mt-2 text-sm font-semibold ${plan.highlight ? 'text-brand-300' : 'text-brand-700'}`}>
+                  {plan.reportsPerMonth} reports / month
+                </p>
 
-                <Link
-                  to={`${ctaTo}?plan=${plan.id}${isSub ? `&billing=${annual ? 'year' : 'month'}` : ''}`}
+                <Link to={`${ctaTo}?plan=${plan.id}&billing=${annual ? 'year' : 'month'}`}
                   className={`mt-6 btn-shine ${plan.highlight ? 'btn bg-emerald-500 text-white hover:bg-emerald-400' : 'btn-primary'} w-full`}>
                   {plan.cta}
                 </Link>
@@ -80,10 +64,10 @@ export default function PricingCards({ ctaTo = '/signup' }) {
                       <span className={plan.highlight ? 'text-ink-200' : 'text-ink-600'}>{f}</span>
                     </li>
                   ))}
-                  {plan.notIncluded.map((f) => (
-                    <li key={f} className="flex items-start gap-2 opacity-50">
-                      <X size={16} className="mt-0.5 shrink-0 text-ink-400" />
-                      <span className="text-ink-400 line-through">{f}</span>
+                  {plan.comingSoon.map((f) => (
+                    <li key={f} className="flex items-start gap-2">
+                      <Clock size={15} className="mt-0.5 shrink-0 text-ink-400" />
+                      <span className={`${plan.highlight ? 'text-ink-400' : 'text-ink-400'}`}>{f} <span className="text-[11px] font-semibold uppercase tracking-wide text-amber-500">soon</span></span>
                     </li>
                   ))}
                 </ul>
@@ -91,6 +75,15 @@ export default function PricingCards({ ctaTo = '/signup' }) {
             </Reveal>
           )
         })}
+      </div>
+
+      {/* Enterprise / high-volume strip */}
+      <div className="mt-6 flex flex-col items-center justify-between gap-3 rounded-2xl bg-ink-50 p-5 sm:flex-row">
+        <div className="text-sm">
+          <span className="font-semibold text-ink-900">Need more than 250 reports a month?</span>
+          <span className="text-ink-500"> We'll build a custom Enterprise plan for high-volume teams.</span>
+        </div>
+        <a href="mailto:support@getpropscope.com?subject=PropScope%20Enterprise" className="btn-secondary whitespace-nowrap">Contact us</a>
       </div>
     </>
   )

@@ -65,26 +65,14 @@ export default function Signup() {
           <div><label className="label">Password</label>
             <input type="password" className="input" placeholder="At least 6 characters" minLength={6} value={form.password} onChange={set('password')} required /></div>
 
-          <div>
-            <label className="label">Choose a plan</label>
-            <div className="grid grid-cols-2 gap-2">
-              {PLANS.map((p) => (
-                <button type="button" key={p.id} onClick={() => setForm((f) => ({ ...f, plan: p.id }))}
-                  className={`relative rounded-xl border p-3 text-left text-sm transition ${
-                    form.plan === p.id ? 'border-brand-500 bg-brand-50 ring-1 ring-brand-500' : 'border-ink-200 hover:border-ink-300'
-                  }`}>
-                  {form.plan === p.id && <Check size={14} className="absolute right-2 top-2 text-brand-600" />}
-                  <p className="font-semibold text-ink-900">{p.name}</p>
-                  <p className="text-ink-500">{usd(p.price)}{p.subscription ? '/mo' : ''}</p>
-                </button>
-              ))}
-            </div>
+          <div className="rounded-xl bg-emerald-50 p-3 text-sm font-medium text-emerald-800">
+            🎁 Your first report is free — no card required. You can pick a plan later once you've tried it.
           </div>
 
           <button className="btn-primary w-full py-3" disabled={loading}>
             {loading ? <><Loader2 size={16} className="animate-spin" /> Creating account…</> : 'Create account'}
           </button>
-          <p className="text-center text-xs text-ink-400">No payment collected yet — you choose a plan here, checkout comes later.</p>
+          <p className="text-center text-xs text-ink-400">No payment collected — your first report is free.</p>
         </form>
       )}
     </AuthShell>

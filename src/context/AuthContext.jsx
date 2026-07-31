@@ -17,7 +17,7 @@ function mapUser(u) {
     phone: md.phone || '',
     stripeCustomerId: md.stripeCustomerId || '',
     subscriptionId: md.subscriptionId || '',
-    plan: md.plan || 'deal-analyzer',
+    plan: md.plan || 'free',
     avatarInitials: initials,
     memberSince: (u.created_at || new Date().toISOString()).slice(0, 10),
   }
@@ -46,11 +46,12 @@ export function AuthProvider({ children }) {
     return true
   }, [])
 
-  const signup = useCallback(async ({ email, password, name, company, plan }) => {
+  const signup = useCallback(async ({ email, password, name, company }) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { name, company, plan } },
+      // New accounts start on the free tier (one free report); a paid plan is granted only after checkout.
+      options: { data: { name, company, plan: 'free' } },
     })
     if (error) throw error
     // When email confirmation is required, no session is returned yet.

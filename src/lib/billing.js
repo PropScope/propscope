@@ -1,15 +1,18 @@
 // Client helpers for Stripe Checkout (test mode).
 
-export async function startProCheckout({ email, userId, interval } = {}) {
+export async function startPlanCheckout({ plan, interval, email, userId } = {}) {
   const res = await fetch('/api/create-checkout-session', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ email, userId, interval, origin: window.location.origin }),
+    body: JSON.stringify({ plan, interval, email, userId, origin: window.location.origin }),
   })
   const data = await res.json().catch(() => ({}))
   if (!res.ok || !data.url) throw new Error(data.error || 'Could not start checkout.')
   window.location.assign(data.url)
 }
+
+// Backwards-compatible alias (defaults to Investor Pro).
+export const startProCheckout = (opts = {}) => startPlanCheckout({ plan: 'investor-pro', ...opts })
 
 export async function confirmCheckout(sessionId) {
   const res = await fetch(`/api/checkout-status?id=${encodeURIComponent(sessionId)}`)
