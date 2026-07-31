@@ -4,10 +4,10 @@ import { Section, SectionHeading } from '../../components/ui/Section.jsx'
 
 const faqs = [
   ['How accurate are the estimates?', 'PropScope uses comparable sales and market data to model ARV, rent, and rehab. Estimates are a strong starting point for underwriting, but you should always verify with your own due diligence and local boots-on-the-ground knowledge before making an offer.'],
-  ['How long does a report take?', 'Most reports generate in just a few minutes. Deal Intelligence reports with BRRRR analysis and an executive memo can take slightly longer.'],
-  ['What\'s the difference between the tiers?', 'Deal Check is a quick go/no-go snapshot. Deal Analyzer adds the full investment model. Deal Intelligence adds BRRRR analysis and an executive memo. Investor Pro gives you unlimited Deal Intelligence reports plus a portfolio dashboard.'],
-  ['Do per-report purchases expire?', 'No. Deal Check, Deal Analyzer, and Deal Intelligence are one-time purchases per report. Investor Pro is a monthly subscription with unlimited reports.'],
-  ['Can I cancel Investor Pro anytime?', 'Yes. Investor Pro is month-to-month and you can cancel from your billing page at any time. You keep access through the end of your billing period.'],
+  ['How long does a report take?', 'Most reports generate in about three minutes — comps, rehab, cash flow, and a scored go/no-go verdict.'],
+  ['What\'s the difference between the plans?', 'Every plan generates the same full investment report — the difference is how many you can run each month: Deal Check includes 3, Deal Analyzer 25, and Investor Pro up to 250, plus priority support and early access to new features.'],
+  ['Do unused reports roll over?', 'No — your monthly report allowance resets at the start of each billing cycle. Need more than 250 reports a month? Contact us about a custom Enterprise plan.'],
+  ['Can I cancel anytime?', 'Yes. Every plan is month-to-month (or annual) and you can cancel from your billing page at any time. You keep access through the end of your billing period.'],
   ['Is this financial advice?', 'No. PropScope provides automated analysis and estimates for informational purposes only. It is not financial, investment, or legal advice. Always consult appropriate professionals before investing.'],
   ['What markets do you cover?', 'PropScope works across U.S. residential markets. Comp availability and data quality vary by area, and the report notes confidence where data is thin.'],
   ['Can I share reports with partners or lenders?', 'Absolutely. Every report includes a downloadable, investor-grade PDF designed to be shared with partners, lenders, and sellers.'],

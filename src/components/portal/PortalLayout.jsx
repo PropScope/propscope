@@ -56,9 +56,9 @@ export default function PortalLayout() {
         </nav>
         <div className="absolute inset-x-3 bottom-3">
           <div className="rounded-xl bg-gradient-to-br from-brand-600 to-brand-700 p-4 text-white">
-            <div className="flex items-center gap-2 text-sm font-semibold"><Sparkles size={15} /> {plan?.name}</div>
+            <div className="flex items-center gap-2 text-sm font-semibold"><Sparkles size={15} /> {plan ? plan.name : 'Free plan'}</div>
             <p className="mt-1 text-xs text-brand-50/90">
-              {plan?.subscription ? 'Unlimited reports active' : 'Per-report plan'}
+              {plan ? `${plan.reportsPerMonth} reports / month` : 'First report free'}
             </p>
             <Link to="/app/billing" className="mt-3 block rounded-lg bg-white/15 px-3 py-1.5 text-center text-xs font-semibold hover:bg-white/25">
               Manage plan
