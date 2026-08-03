@@ -84,7 +84,7 @@ export default function ReportDetail() {
   const vb = VERDICT_BANNER[r.verdict] || VERDICT_BANNER.Moderate
   const mao = Math.round(n(r.arv) * 0.7 - n(r.rehab))
   const fullAddress = [r.address, r.city, r.state, r.zip].filter(Boolean).join(', ')
-  const photoUrl = `/api/property-photo?address=${encodeURIComponent(fullAddress)}&w=640&h=320`
+  const photoUrl = `/api/property-photo?address=${encodeURIComponent(fullAddress)}&w=640&h=360`
   const idx = all.findIndex((x) => x.id === r.id)
   const prev = idx > 0 ? all[idx - 1] : null
   const next = idx >= 0 && idx < all.length - 1 ? all[idx + 1] : null
@@ -124,7 +124,7 @@ export default function ReportDetail() {
             src={photoUrl}
             alt={r.address}
             onError={() => setPhotoOk(false)}
-            className="mb-5 h-44 w-full rounded-xl object-cover ring-1 ring-ink-100"
+            className="mb-5 block w-full rounded-xl ring-1 ring-ink-100 bg-ink-50"
           />
         )}
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
