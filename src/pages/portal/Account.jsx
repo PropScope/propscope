@@ -1,12 +1,14 @@
 import { useState } from 'react'
-import { Check } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Check, LogOut } from 'lucide-react'
 import PageHeader from '../../components/portal/PageHeader.jsx'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { dateFmt } from '../../lib/format.js'
 import ThemeToggle from '../../components/ui/ThemeToggle.jsx'
 
 export default function Account() {
-  const { user, updateProfile } = useAuth()
+  const { user, updateProfile, logout } = useAuth()
+  const nav = useNavigate()
   const [saved, setSaved] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -80,8 +82,9 @@ export default function Account() {
             </div>
           </div>
           <div className="card p-6">
-            <h3 className="font-semibold text-ink-900">Security</h3>
-            <button className="btn-secondary mt-4 w-full">Change password</button>
+            <h3 className="font-semibold text-ink-900">Account &amp; security</h3>
+            <button onClick={() => { logout(); nav('/') }} className="btn-secondary mt-4 w-full"><LogOut size={16} /> Log out</button>
+            <button className="btn-secondary mt-2 w-full">Change password</button>
             <button className="btn-ghost mt-2 w-full text-rose-600 hover:bg-rose-50">Delete account</button>
           </div>
         </div>
