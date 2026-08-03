@@ -33,12 +33,12 @@ export function recompute(inp, A = ASSUMPTIONS) {
   const flipRoi = (price + rehab) > 0 ? r1((profitFlip / (price + rehab)) * 100) : 0
   const flipMarginPct = arv > 0 ? (profitFlip / arv) * 100 : 0
 
-  let verdict = 'Thin'
-  if (monthlyCashFlow >= 250 && flipMarginPct >= 12) verdict = 'Strong'
-  else if (monthlyCashFlow >= 100 || flipMarginPct >= 8) verdict = 'Moderate'
-
-  const score = Math.round(Math.max(0, Math.min(100,
-    50 + flipMarginPct * 1.4 + monthlyCashFlow / 20 + capRate * 2)))
+  // Deal quality = the BETTER of a flip or a hold (kept identical to the server underwriting).
+  const clamp = (v) => Math.max(0, Math.min(100, v))
+  const fScore = clamp((flipMarginPct / 30) * 100)   // 30% margin on ARV -> 100
+  const hScore = clamp(((cashOnCash + 10) / 25) * 100) // 15% cash-on-cash -> 100
+  const score = Math.round(clamp(Math.max(fScore, hScore)))
+  const verdict = score >= 70 ? 'Strong' : score >= 45 ? 'Moderate' : 'Thin'
 
   const cashflow = [0, 1, 2, 3, 4].map((i) => ({
     name: `Yr ${i + 1}`, value: Math.round(monthlyCashFlow * 12 * Math.pow(1.03, i)),

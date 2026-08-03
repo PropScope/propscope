@@ -41,6 +41,45 @@ async function getMarketData(d) {
   }
 }
 
+// Deterministic underwriting: score/verdict/returns come from the numbers, not the AI's
+// free-hand judgment. Same inputs -> same grade; better fundamentals -> better grade.
+function applyUnderwriting(data) {
+  const num = (v) => Number(v) || 0
+  const clamp = (v) => Math.max(0, Math.min(100, v))
+  const r1 = (v) => Math.round(v * 10) / 10
+  const price = num(data.purchasePrice), arv = num(data.arv), rehab = num(data.rehab), rent = num(data.monthlyRent)
+  const A = { down: 0.20, rate: 0.07, term: 30, exp: 0.40, closing: 0.03, selling: 0.08 }
+  const loan = price * (1 - A.down)
+  const mr = A.rate / 12
+  const pi = loan > 0 ? loan * mr / (1 - Math.pow(1 + mr, -A.term * 12)) : 0
+  const noiM = rent * (1 - A.exp)
+  const cashFlow = Math.round(noiM - pi)
+  const capRate = price > 0 ? r1((noiM * 12 / price) * 100) : 0
+  const invested = price * A.down + rehab + price * A.closing
+  const coc = invested > 0 ? r1((cashFlow * 12 / invested) * 100) : 0
+  const flipProfit = Math.round(arv - price - rehab - arv * A.selling)
+  const flipMarginPct = arv > 0 ? (flipProfit / arv) * 100 : 0
+  const flipRoi = (price + rehab) > 0 ? r1((flipProfit / (price + rehab)) * 100) : 0
+  // Deal quality = the BETTER of a flip or a hold (a great flip isn't punished for weak hold cash flow).
+  const fScore = clamp((flipMarginPct / 30) * 100)   // 30% margin on ARV -> 100
+  const hScore = clamp(((coc + 10) / 25) * 100)       // 15% cash-on-cash -> 100
+  const score = Math.round(clamp(Math.max(fScore, hScore)))
+  const verdict = score >= 70 ? 'Strong' : score >= 45 ? 'Moderate' : 'Thin'
+  data.monthlyCashFlow = cashFlow
+  data.capRate = capRate
+  data.cashOnCash = coc
+  data.profitFlip = flipProfit
+  data.score = score
+  data.verdict = verdict
+  data.strategies = [
+    { name: 'Fix & Flip', roi: flipRoi, profit: flipProfit },
+    { name: 'Buy & Hold', roi: coc, profit: cashFlow * 12 },
+    { name: 'BRRRR', roi: r1(coc + 6.5), profit: cashFlow * 12 + 4800 },
+  ]
+  data.cashflow = [0, 1, 2, 3, 4].map((i) => ({ name: `Yr ${i + 1}`, value: Math.round(cashFlow * 12 * Math.pow(1.03, i)) }))
+  return data
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' })
@@ -181,6 +220,9 @@ Provide 3-5 comps, an itemized rehab budget (include a contingency line), and 3-
     // Guarantee the real comps are shown when we have them
     if (market && market.comps && market.comps.length >= 3) data.comps = market.comps
     data.dataSource = market ? 'RentCast + AI' : 'AI estimate'
+
+    // Grade the deal with a fixed formula so scores are consistent and logical.
+    applyUnderwriting(data)
 
     res.status(200).json(data)
   } catch (e) {
