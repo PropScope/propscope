@@ -197,6 +197,7 @@ Provide 3-5 comps, an itemized rehab budget (include a contingency line), and 3-
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 2500,
+        temperature: 0, // deterministic: same inputs -> same ARV/rent estimate, run to run
         messages: [{ role: 'user', content: prompt }],
       }),
     })
