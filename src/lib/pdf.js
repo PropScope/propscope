@@ -150,14 +150,43 @@ function preparedBy(doc, y, contact) {
   return y + 6
 }
 
+// Fetch the property photo from our proxy and return a JPEG data URL (or null).
+async function fetchPhotoDataUrl(r) {
+  try {
+    const addr = [r.address, r.city, r.state, r.zip].filter(Boolean).join(', ')
+    if (!addr) return null
+    const res = await fetch(`/api/property-photo?address=${encodeURIComponent(addr)}&w=640&h=200`)
+    if (!res.ok) return null
+    const blob = await res.blob()
+    return await new Promise((resolve) => {
+      const fr = new FileReader()
+      fr.onload = () => resolve(fr.result)
+      fr.onerror = () => resolve(null)
+      fr.readAsDataURL(blob)
+    })
+  } catch (e) { return null }
+}
+
+// Draw the property photo as a full-width banner; returns the new y (unchanged if none).
+function photoBanner(doc, y, photo) {
+  if (!photo) return y
+  try {
+    const ph = Math.round((RIGHT - M) * 200 / 640)
+    doc.addImage(photo, 'JPEG', M, y, RIGHT - M, ph)
+    return y + ph + 16
+  } catch (e) { return y }
+}
+
 // ================= Investor report =================
-export function downloadInvestorReport(r, opts = {}) {
+export async function downloadInvestorReport(r, opts = {}) {
   if (!r) return
   const d = reportDetail(r)
   const tier = planById(r.tier)
   const mao = Math.round(n(r.arv) * 0.7 - n(r.rehab))
+  const photo = opts.photoDataUrl !== undefined ? opts.photoDataUrl : await fetchPhotoDataUrl(r)
   const doc = newDoc()
   let y = header(doc, 'Investment Analysis Report')
+  y = photoBanner(doc, y, photo)
 
   doc.setFont('helvetica', 'bold'); doc.setFontSize(17); doc.setTextColor(...NAVY)
   doc.text(r.address || 'Property', M, y)
@@ -246,14 +275,16 @@ export function downloadInvestorReport(r, opts = {}) {
 }
 
 // ================= Seller summary =================
-export function downloadSellerSummary(r, opts = {}) {
+export async function downloadSellerSummary(r, opts = {}) {
   if (!r) return
   const includeRepairs = opts.includeRepairs !== false
   const contact = opts.contact
   const d = reportDetail(r)
   const mao = Math.round(n(r.arv) * 0.7 - n(r.rehab))
+  const photo = opts.photoDataUrl !== undefined ? opts.photoDataUrl : await fetchPhotoDataUrl(r)
   const doc = newDoc()
   let y = header(doc, 'Seller Summary')
+  y = photoBanner(doc, y, photo)
 
   doc.setFont('helvetica', 'bold'); doc.setFontSize(16); doc.setTextColor(...NAVY)
   doc.text('How we reached our offer', M, y); y += 18

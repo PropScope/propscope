@@ -42,10 +42,12 @@ export default function ReportDetail() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [includeRepairs, setIncludeRepairs] = useState(true)
+  const [photoOk, setPhotoOk] = useState(true)
 
   useEffect(() => {
     let active = true
     setLoading(true)
+    setPhotoOk(true)
     ;(async () => {
       try {
         const [one, list] = await Promise.all([getReport(id), listReports()])
@@ -81,6 +83,8 @@ export default function ReportDetail() {
   const d = reportDetail(r)
   const vb = VERDICT_BANNER[r.verdict] || VERDICT_BANNER.Moderate
   const mao = Math.round(n(r.arv) * 0.7 - n(r.rehab))
+  const fullAddress = [r.address, r.city, r.state, r.zip].filter(Boolean).join(', ')
+  const photoUrl = `/api/property-photo?address=${encodeURIComponent(fullAddress)}&w=640&h=320`
   const idx = all.findIndex((x) => x.id === r.id)
   const prev = idx > 0 ? all[idx - 1] : null
   const next = idx >= 0 && idx < all.length - 1 ? all[idx + 1] : null
@@ -115,6 +119,14 @@ export default function ReportDetail() {
 
       {/* Header */}
       <div className="card mb-6 p-6">
+        {photoOk && (
+          <img
+            src={photoUrl}
+            alt={r.address}
+            onError={() => setPhotoOk(false)}
+            className="mb-5 h-44 w-full rounded-xl object-cover ring-1 ring-ink-100"
+          />
+        )}
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
             <span className="grid h-14 w-14 place-items-center rounded-2xl text-white" style={{ background: r.thumb || '#213f66' }}>
