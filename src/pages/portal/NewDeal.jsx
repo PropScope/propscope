@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, Check, Loader2, Home, DollarSign, Target, Sparkles, Lock } from 'lucide-react'
 import PageHeader from '../../components/portal/PageHeader.jsx'
 import { planById, capForPlan } from '../../lib/plans.js'
-import { generateReport, reportCount, monthlyReportCount } from '../../lib/reports.js'
+import { generateReport, reportCount, monthlyReportCount, findDuplicateReport } from '../../lib/reports.js'
 import { useAuth } from '../../context/AuthContext.jsx'
 
 const steps = ['Property', 'Numbers', 'Strategy']
@@ -18,6 +18,7 @@ export default function NewDeal() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [usage, setUsage] = useState(null) // { total, month }
+  const [dup, setDup] = useState(null) // existing report for this address, if any
   const [form, setForm] = useState({
     address: '', city: '', state: '', zip: '', beds: '', baths: '', sqft: '', year: '',
     purchasePrice: '', rehab: '', rent: '', arv: '',
@@ -48,15 +49,25 @@ export default function NewDeal() {
     tier: plan ? plan.id : 'deal-check',
   })
 
-  const submit = async () => {
+  const runGenerate = async (opts = {}) => {
     setSubmitting(true); setError('')
     try {
-      const report = await generateReport(buildIntake())
+      const report = await generateReport(buildIntake(), opts)
+      setDup(null)
       nav(`/app/reports/${report.id}`)
     } catch (err) {
       setError((err && err.message) || 'Something went wrong.')
       setSubmitting(false)
     }
+  }
+
+  const submit = async () => {
+    setError('')
+    try {
+      const existing = await findDuplicateReport(buildIntake())
+      if (existing) { setDup(existing); return }
+    } catch {}
+    runGenerate()
   }
 
   const usageNote = () => {
@@ -211,6 +222,27 @@ export default function NewDeal() {
           )}
         </div>
       </div>
+
+      {dup && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-ink-900/50 p-4" onClick={() => !submitting && setDup(null)}>
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl ring-1 ring-ink-200" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-ink-900">You've analyzed this address before</h3>
+            <p className="mt-2 text-sm text-ink-600">
+              <span className="font-semibold text-ink-900">{dup.address}</span> was last analyzed on{' '}
+              <span className="font-semibold">{new Date(dup.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>. Running it again replaces that report with fresh numbers.
+            </p>
+            <div className="mt-6 flex items-center justify-end gap-2">
+              <button onClick={() => setDup(null)} disabled={submitting} className="btn-secondary">Cancel</button>
+              <button onClick={() => runGenerate({ replaceId: dup.id })} disabled={submitting} className="btn-primary">
+                {submitting ? <><Loader2 size={16} className="animate-spin" /> Updating…</> : <>Update report <Sparkles size={16} /></>}
+              </button>
+            </div>
+            <p className="mt-3 text-center text-xs text-ink-400">
+              <button onClick={() => runGenerate()} disabled={submitting} className="underline hover:text-ink-600">Keep both instead</button>
+            </p>
+          </div>
+        </div>
+      )}
     </>
   )
 }

@@ -9,7 +9,7 @@ export function flatten(row) {
 }
 
 // Call the AI function, then save the result to Supabase for this user.
-export async function generateReport(input, { paid = false } = {}) {
+export async function generateReport(input, { paid = false, replaceId = null } = {}) {
   const { data: sess } = await supabase.auth.getSession()
   const token = sess && sess.session && sess.session.access_token
   const res = await fetch('/api/generate-report', {
@@ -43,9 +43,38 @@ export async function generateReport(input, { paid = false } = {}) {
     data: { ...ai, rehabScope: input.rehabScope || 'ai', thumb: THUMBS[Math.floor(Math.random() * THUMBS.length)] },
   }
 
+  // Replace an existing report for the same address instead of piling up duplicates.
+  if (replaceId) {
+    const patch = {
+      address: record.address, city: record.city, state: record.state, zip: record.zip,
+      tier: record.tier, strategy: record.strategy, status: record.status,
+      score: record.score, verdict: record.verdict,
+      ...record.data,
+      created_at: new Date().toISOString(),
+    }
+    return await updateReport(replaceId, patch)
+  }
+
   const { data, error } = await supabase.from('reports').insert(record).select().single()
   if (error) throw error
   return flatten(data)
+}
+
+// Find this user's most recent existing report for the same address (dedupe helper).
+export async function findDuplicateReport(input) {
+  const norm = (s) => String(s || '').trim().toLowerCase().replace(/\s+/g, ' ')
+  const addr = norm(input.address)
+  if (!addr) return null
+  try {
+    const { data, error } = await supabase.from('reports').select('*').order('created_at', { ascending: false })
+    if (error) return null
+    const zip = norm(input.zip)
+    return (data || []).map(flatten).find((r) => {
+      if (norm(r.address) !== addr) return false
+      if (zip && norm(r.zip)) return norm(r.zip) === zip
+      return true
+    }) || null
+  } catch (e) { return null }
 }
 
 // How many reports this user already has (used to grant the first one free).

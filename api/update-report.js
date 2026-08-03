@@ -2,7 +2,7 @@
 // after verifying the signed-in user actually owns the report).
 
 const SUPABASE_URL = 'https://iplngnllrvivrbjxcovk.supabase.co'
-const COLS = ['address', 'city', 'state', 'zip', 'tier', 'strategy', 'status', 'score', 'verdict']
+const COLS = ['address', 'city', 'state', 'zip', 'tier', 'strategy', 'status', 'score', 'verdict', 'created_at']
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') { res.status(405).json({ error: 'Method not allowed' }); return }
