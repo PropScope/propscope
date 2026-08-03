@@ -21,7 +21,7 @@ export default function NewDeal() {
   const [form, setForm] = useState({
     address: '', city: '', state: '', zip: '', beds: '', baths: '', sqft: '', year: '',
     purchasePrice: '', rehab: '', rent: '', arv: '',
-    strategy: 'BRRRR', notes: '',
+    strategy: 'BRRRR', notes: '', noPrice: false,
   })
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
   const next = () => setStep((s) => Math.min(s + 1, steps.length - 1))
@@ -38,6 +38,7 @@ export default function NewDeal() {
   const freeAvail = !!usage && usage.total === 0
   const withinCap = !!plan && !!usage && usage.month < cap
   const canGenerate = freeAvail || withinCap
+  const priceOk = !!String(form.purchasePrice).trim() || form.noPrice
 
   const buildIntake = () => ({
     address: form.address, city: form.city, state: form.state, zip: form.zip,
@@ -109,17 +110,32 @@ export default function NewDeal() {
         )}
 
         {step === 1 && (
-          <Fieldset icon={DollarSign} title="Your numbers" hint="Leave anything blank and PropScope will estimate it.">
+          <Fieldset icon={DollarSign} title="Your numbers" hint="Enter a sale price — or check the box if you don't know it yet. The rest is optional.">
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Purchase price"><input className="input" placeholder="$142,000" value={form.purchasePrice} onChange={set('purchasePrice')} /></Field>
+              <div>
+                <label className="label">Sale price {!form.noPrice && <span className="text-rose-500">*</span>}</label>
+                <input className="input disabled:bg-ink-50 disabled:text-ink-400" placeholder="$142,000" inputMode="numeric"
+                  value={form.purchasePrice} onChange={set('purchasePrice')} disabled={form.noPrice} />
+                <label className="mt-2 flex cursor-pointer select-none items-center gap-2 text-sm text-ink-600">
+                  <input type="checkbox" checked={form.noPrice}
+                    onChange={(e) => setForm((f) => ({ ...f, noPrice: e.target.checked, purchasePrice: e.target.checked ? '' : f.purchasePrice }))}
+                    className="h-4 w-4 rounded border-ink-300 text-brand-600 focus:ring-brand-500" />
+                  I don't know the sale price yet — estimate it for me
+                </label>
+              </div>
               <Field label="Estimated ARV"><input className="input" placeholder="Estimate for me" value={form.arv} onChange={set('arv')} /></Field>
-              <Field label="Rehab budget"><input className="input" placeholder="$41,000" value={form.rehab} onChange={set('rehab')} /></Field>
+              <Field label="Rehab budget"><input className="input" placeholder="Estimate for me" value={form.rehab} onChange={set('rehab')} /></Field>
               <Field label="Expected monthly rent"><input className="input" placeholder="Estimate for me" value={form.rent} onChange={set('rent')} /></Field>
             </div>
             <div className="mt-4 flex items-start gap-2 rounded-xl bg-brand-50 p-4 text-sm text-brand-800">
               <Sparkles size={18} className="mt-0.5 shrink-0" />
-              Don't have every number? That's fine — our engine fills the gaps using comps and market data.
+              ARV, rehab and rent are optional — leave them blank and our engine estimates from comps and market data. You can fine-tune every number on the report afterward.
             </div>
+            {!priceOk && (
+              <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800">
+                Enter a sale price, or check "I don't know the sale price yet" to continue.
+              </div>
+            )}
           </Fieldset>
         )}
 
@@ -161,7 +177,7 @@ export default function NewDeal() {
             <ArrowLeft size={16} /> Back
           </button>
           {step < steps.length - 1 ? (
-            <button onClick={next} className="btn-primary">Continue <ArrowRight size={16} /></button>
+            <button onClick={next} disabled={step === 1 && !priceOk} className="btn-primary disabled:opacity-40">Continue <ArrowRight size={16} /></button>
           ) : canGenerate ? (
             <button onClick={submit} disabled={submitting || !usage} className="btn-primary">
               {submitting ? <><Loader2 size={16} className="animate-spin" /> Working…</> : <>{freeAvail ? 'Generate free report' : 'Generate report'} <Sparkles size={16} /></>}

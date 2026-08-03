@@ -4,12 +4,14 @@ import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Cell,
 } from 'recharts'
 import {
-  ArrowLeft, ArrowRight, MapPin, Download, Share2, Loader2, TrendingUp, AlertTriangle, FileText,
+  ArrowLeft, ArrowRight, MapPin, Download, Share2, Loader2, TrendingUp, AlertTriangle, FileText, Pencil, Save, X,
 } from 'lucide-react'
 import ScoreRing from '../../components/ui/ScoreRing.jsx'
 import Stat from '../../components/ui/Stat.jsx'
+import StreetViewEmbed from '../../components/portal/StreetViewEmbed.jsx'
 import { reportDetail } from '../../lib/mockData.js'
-import { getReport, listReports } from '../../lib/reports.js'
+import { getReport, listReports, updateReport } from '../../lib/reports.js'
+import { recompute, editPatch } from '../../lib/underwrite.js'
 import { downloadInvestorReport, downloadSellerSummary } from '../../lib/pdf.js'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { planById } from '../../lib/plans.js'
@@ -43,6 +45,10 @@ export default function ReportDetail() {
   const [error, setError] = useState('')
   const [includeRepairs, setIncludeRepairs] = useState(true)
   const [photoOk, setPhotoOk] = useState(true)
+  const [editing, setEditing] = useState(false)
+  const [form, setForm] = useState({ purchasePrice: '', arv: '', rehab: '', monthlyRent: '' })
+  const [saving, setSaving] = useState(false)
+  const [saveErr, setSaveErr] = useState('')
 
   useEffect(() => {
     let active = true
@@ -81,8 +87,27 @@ export default function ReportDetail() {
 
   const tier = planById(r.tier)
   const d = reportDetail(r)
-  const vb = VERDICT_BANNER[r.verdict] || VERDICT_BANNER.Moderate
-  const mao = Math.round(n(r.arv) * 0.7 - n(r.rehab))
+  const calc = editing ? recompute(form) : null
+  const disp = editing
+    ? { score: calc.score, verdict: calc.verdict, purchasePrice: n(form.purchasePrice), rehab: n(form.rehab), arv: n(form.arv) }
+    : { score: n(r.score), verdict: r.verdict, purchasePrice: n(r.purchasePrice), rehab: n(r.rehab), arv: n(r.arv) }
+  const vb = VERDICT_BANNER[disp.verdict] || VERDICT_BANNER.Moderate
+  const mao = editing ? calc.mao : Math.round(n(r.arv) * 0.7 - n(r.rehab))
+
+  const startEdit = () => {
+    setForm({ purchasePrice: n(r.purchasePrice), arv: n(r.arv), rehab: n(r.rehab), monthlyRent: n(r.monthlyRent) })
+    setSaveErr(''); setEditing(true)
+  }
+  const saveEdit = async () => {
+    setSaving(true); setSaveErr('')
+    try {
+      const updated = await updateReport(r.id, editPatch(form))
+      setR(updated); setEditing(false)
+    } catch (e) {
+      setSaveErr((e && e.message) || 'Could not save your changes.')
+    } finally { setSaving(false) }
+  }
+
   const fullAddress = [r.address, r.city, r.state, r.zip].filter(Boolean).join(', ')
   const photoUrl = `/api/property-photo?address=${encodeURIComponent(fullAddress)}&w=640&h=360`
   const idx = all.findIndex((x) => x.id === r.id)
@@ -119,14 +144,7 @@ export default function ReportDetail() {
 
       {/* Header */}
       <div className="card mb-6 p-6">
-        {photoOk && (
-          <img
-            src={photoUrl}
-            alt={r.address}
-            onError={() => setPhotoOk(false)}
-            className="mb-5 block h-72 w-full rounded-xl object-cover object-center ring-1 ring-ink-100 bg-ink-50"
-          />
-        )}
+        <StreetViewEmbed address={fullAddress} fallbackUrl={photoUrl} />
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
             <span className="grid h-14 w-14 place-items-center rounded-2xl text-white" style={{ background: r.thumb || '#213f66' }}>
@@ -143,12 +161,12 @@ export default function ReportDetail() {
           </div>
           <div className="flex items-center gap-3">
             <div className="text-center">
-              <ScoreRing score={n(r.score)} size={72} />
+              <ScoreRing score={disp.score} size={72} />
               <p className="mt-1 text-xs font-medium text-ink-500">PropScope Score</p>
             </div>
             <div className="flex flex-col gap-2">
               <button onClick={() => downloadInvestorReport(r, { contact })} className="btn-primary"><Download size={16} /> PDF</button>
-              <button className="btn-secondary"><Share2 size={16} /> Share</button>
+              {!editing && <button onClick={startEdit} className="btn-secondary"><Pencil size={16} /> Edit numbers</button>}
             </div>
           </div>
         </div>
@@ -156,25 +174,53 @@ export default function ReportDetail() {
         <div className={`mt-5 flex items-start gap-3 rounded-xl ${vb.wrap} p-4`}>
           <vb.Icon size={20} className={`mt-0.5 shrink-0 ${vb.icon}`} />
           <div>
-            <p className={`font-semibold ${vb.title}`}>Verdict: {r.verdict}{bestStrategy ? ` — best played as ${bestStrategy.name}` : ''}</p>
+            <p className={`font-semibold ${vb.title}`}>Verdict: {disp.verdict}{bestStrategy ? ` — best played as ${bestStrategy.name}` : ''}</p>
             <p className={`mt-0.5 text-sm ${vb.body}`}>
-              At {usd(n(r.purchasePrice))} in with {usd(n(r.rehab))} rehab against a {usd(n(r.arv))} ARV, {vb.msg}
+              At {usd(disp.purchasePrice)} in with {usd(disp.rehab)} rehab against a {usd(disp.arv)} ARV, {vb.msg}
             </p>
           </div>
         </div>
       </div>
 
       {/* Key stats */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="Purchase price" value={usd(n(r.purchasePrice))} />
-        <Stat label="After-repair value" value={usd(n(r.arv))} tone="brand" />
-        <Stat label="Rehab estimate" value={usd(n(r.rehab))} />
-        <Stat label="Max allowable offer" value={usd(mao)} />
-        <Stat label="Monthly rent" value={usd(n(r.monthlyRent))} />
-        <Stat label="Monthly cash flow" value={usd(n(r.monthlyCashFlow))} tone="positive" />
-        <Stat label="Cap rate" value={pct(n(r.capRate))} />
-        <Stat label="Cash-on-cash" value={pct(n(r.cashOnCash))} tone="positive" />
-      </div>
+      {editing ? (
+        <div className="card p-6">
+          <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-ink-900">
+            <Pencil size={16} className="text-brand-600" /> Edit your numbers
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <EditNum label="Sale price" value={form.purchasePrice} onChange={(v) => setForm((f) => ({ ...f, purchasePrice: v }))} />
+            <EditNum label="After-repair value" value={form.arv} onChange={(v) => setForm((f) => ({ ...f, arv: v }))} />
+            <EditNum label="Rehab estimate" value={form.rehab} onChange={(v) => setForm((f) => ({ ...f, rehab: v }))} />
+            <EditNum label="Monthly rent" value={form.monthlyRent} onChange={(v) => setForm((f) => ({ ...f, monthlyRent: v }))} />
+          </div>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <Stat label="Max allowable offer" value={usd(calc.mao)} />
+            <Stat label="Monthly cash flow" value={usd(calc.monthlyCashFlow)} tone="positive" />
+            <Stat label="Cap rate" value={pct(calc.capRate)} />
+            <Stat label="Cash-on-cash" value={pct(calc.cashOnCash)} tone="positive" />
+          </div>
+          <p className="mt-3 text-xs text-ink-400">Recalculated instantly using standard assumptions (20% down, 7% rate, 30-yr loan, ~40% operating expenses). Comps stay as originally pulled.</p>
+          {saveErr && <div className="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm text-rose-700">{saveErr}</div>}
+          <div className="mt-4 flex items-center gap-2">
+            <button onClick={saveEdit} disabled={saving} className="btn-primary">
+              {saving ? <><Loader2 size={16} className="animate-spin" /> Saving…</> : <><Save size={16} /> Save changes</>}
+            </button>
+            <button onClick={() => setEditing(false)} disabled={saving} className="btn-secondary"><X size={16} /> Cancel</button>
+          </div>
+        </div>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Stat label="Purchase price" value={usd(n(r.purchasePrice))} />
+          <Stat label="After-repair value" value={usd(n(r.arv))} tone="brand" />
+          <Stat label="Rehab estimate" value={usd(n(r.rehab))} />
+          <Stat label="Max allowable offer" value={usd(mao)} />
+          <Stat label="Monthly rent" value={usd(n(r.monthlyRent))} />
+          <Stat label="Monthly cash flow" value={usd(n(r.monthlyCashFlow))} tone="positive" />
+          <Stat label="Cap rate" value={pct(n(r.capRate))} />
+          <Stat label="Cash-on-cash" value={pct(n(r.cashOnCash))} tone="positive" />
+        </div>
+      )}
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         {/* Strategy comparison */}
@@ -340,5 +386,21 @@ function Back() {
     <Link to="/app/reports" className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-ink-500 hover:text-ink-800">
       <ArrowLeft size={16} /> Back to reports
     </Link>
+  )
+}
+
+function EditNum({ label, value, onChange }) {
+  return (
+    <div className="rounded-xl border border-brand-200 bg-brand-50/40 p-3">
+      <label className="text-xs font-medium text-ink-500">{label}</label>
+      <div className="mt-1 flex items-center gap-1">
+        <span className="text-ink-400">$</span>
+        <input
+          type="number" inputMode="numeric" value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full bg-transparent text-lg font-bold text-ink-900 outline-none"
+        />
+      </div>
+    </div>
   )
 }

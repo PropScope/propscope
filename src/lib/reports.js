@@ -76,3 +76,20 @@ export async function getReport(id) {
   if (error) throw error
   return flatten(data)
 }
+
+// Persist edited numbers. Splits a flattened patch into top-level columns and the jsonb `data`.
+const COLUMN_KEYS = ['address', 'city', 'state', 'zip', 'tier', 'strategy', 'status', 'score', 'verdict']
+export async function updateReport(id, patch) {
+  const { data: existing, error: ge } = await supabase.from('reports').select('data').eq('id', id).maybeSingle()
+  if (ge) throw ge
+  const cols = {}
+  const dataPatch = {}
+  Object.entries(patch || {}).forEach(([k, v]) => {
+    if (COLUMN_KEYS.includes(k)) cols[k] = v
+    else dataPatch[k] = v
+  })
+  const newData = { ...((existing && existing.data) || {}), ...dataPatch }
+  const { data, error } = await supabase.from('reports').update({ ...cols, data: newData }).eq('id', id).select().single()
+  if (error) throw error
+  return flatten(data)
+}
