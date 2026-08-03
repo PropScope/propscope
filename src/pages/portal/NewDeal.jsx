@@ -21,7 +21,7 @@ export default function NewDeal() {
   const [form, setForm] = useState({
     address: '', city: '', state: '', zip: '', beds: '', baths: '', sqft: '', year: '',
     purchasePrice: '', rehab: '', rent: '', arv: '',
-    strategy: 'BRRRR', notes: '', noPrice: false, rehabScope: 'ai',
+    strategy: 'BRRRR', notes: '', noPrice: false, rehabScope: 'moderate',
   })
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
   const next = () => setStep((s) => Math.min(s + 1, steps.length - 1))
@@ -130,9 +130,8 @@ export default function NewDeal() {
 
             <div className="mt-5">
               <label className="label">Property condition — how much work does it need?</label>
-              <div className="mt-1 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="mt-1 grid gap-3 sm:grid-cols-3">
                 {[
-                  ['ai', 'Let AI estimate', "We'll infer it from the data"],
                   ['cosmetic', 'Cosmetic', 'Paint, floors, fixtures'],
                   ['moderate', 'Moderate', 'Kitchen, baths & systems'],
                   ['gut', 'Full gut', 'Down to the studs'],
@@ -146,7 +145,7 @@ export default function NewDeal() {
                   </button>
                 ))}
               </div>
-              <p className="mt-2 text-xs text-ink-400">This is the one call only you can make from the photos — the AI sizes the rehab from your pick, the square footage, and local costs. A rehab number typed above overrides this.</p>
+              <p className="mt-2 text-xs text-ink-400">The AI sizes the rehab from your pick, the square footage, and local market costs. Not sure? Moderate is the safe middle — you can change it, or type your own rehab number above, anytime.</p>
             </div>
 
             <div className="mt-4 flex items-start gap-2 rounded-xl bg-brand-50 p-4 text-sm text-brand-800">
