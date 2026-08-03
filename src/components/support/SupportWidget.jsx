@@ -28,6 +28,7 @@ export default function SupportWidget() {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [listening, setListening] = useState(false)
+  const [micError, setMicError] = useState('')
   const endRef = useRef(null)
   const recRef = useRef(null)
   const supportsVoice = typeof window !== 'undefined' && !!(window.SpeechRecognition || window.webkitSpeechRecognition)
@@ -64,22 +65,40 @@ export default function SupportWidget() {
   }
 
   const toggleMic = () => {
-    if (!supportsVoice) return
-    if (listening) { try { recRef.current?.stop() } catch (e) {} ; return }
+    if (!supportsVoice) { setMicError('Voice input isn’t supported in this browser. Try Chrome, Edge, or Safari.'); return }
+    // Already listening → stop.
+    if (listening || recRef.current) { try { recRef.current?.stop() } catch (e) {} ; return }
+    setMicError('')
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition
-    const rec = new SR()
+    let rec
+    try { rec = new SR() } catch (e) { setMicError('Couldn’t start the microphone. Please type your question.'); return }
     rec.lang = 'en-US'
     rec.interimResults = false
     rec.continuous = false
+    let gotSpeech = false
     rec.onresult = (e) => {
       const t = Array.from(e.results).map((r) => r[0].transcript).join(' ').trim()
-      if (t) setInput((prev) => (prev ? prev.trim() + ' ' : '') + t)
+      if (t) { gotSpeech = true; setInput((prev) => (prev ? prev.trim() + ' ' : '') + t) }
     }
-    rec.onend = () => setListening(false)
-    rec.onerror = () => setListening(false)
+    rec.onerror = (e) => {
+      const code = e && e.error
+      if (code === 'not-allowed' || code === 'service-not-allowed') {
+        setMicError('Microphone access is blocked. Allow mic access in your browser’s site settings, then try again.')
+      } else if (code === 'no-speech') {
+        setMicError('I didn’t catch that — tap the mic and speak again.')
+      } else if (code === 'audio-capture') {
+        setMicError('No microphone was found. Check that one is connected.')
+      } else if (code === 'network') {
+        setMicError('Voice input needs a network connection. Please try again.')
+      } else if (code !== 'aborted') {
+        setMicError('Voice input hit a snag. Please type your question.')
+      }
+    }
+    rec.onend = () => { setListening(false); recRef.current = null; if (!gotSpeech) { /* keep any error already set */ } }
     recRef.current = rec
     setListening(true)
-    try { rec.start() } catch (e) { setListening(false) }
+    try { rec.start() }
+    catch (e) { setListening(false); recRef.current = null; setMicError('Couldn’t start the microphone. Please type your question.') }
   }
 
   // Theme-aware class fragments
@@ -135,7 +154,7 @@ export default function SupportWidget() {
               <textarea
                 rows={1}
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
+                onChange={(e) => { setInput(e.target.value); if (micError) setMicError('') }}
                 onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
                 placeholder={listening ? 'Listening… speak now' : 'Type or tap the mic to speak…'}
                 className={`max-h-24 flex-1 resize-none rounded-lg border px-3 py-2 text-sm outline-none focus:border-[#213f66] ${textareaCls}`}
@@ -150,6 +169,9 @@ export default function SupportWidget() {
                 <Send size={16} />
               </button>
             </div>
+            {micError && (
+              <p className={`mt-1.5 px-1 text-xs ${dark ? 'text-rose-300' : 'text-rose-600'}`}>{micError}</p>
+            )}
             <a href={`mailto:${SUPPORT_EMAIL}`} className={`mt-2 flex items-center justify-center gap-1.5 text-xs transition ${emailCls}`}>
               <Mail size={12} /> Prefer email? {SUPPORT_EMAIL}
             </a>
