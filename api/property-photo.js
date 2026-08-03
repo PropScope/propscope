@@ -29,7 +29,7 @@ export default async function handler(req, res) {
 
     // 2) Fallback: top-down satellite/aerial of the parcel.
     if (!imgUrl) {
-      imgUrl = `${MAPS}/staticmap?center=${loc}&zoom=19&size=${w}x${h}&maptype=satellite&key=${key}`
+      imgUrl = `${MAPS}/staticmap?center=${loc}&zoom=18&size=${w}x${h}&maptype=satellite&key=${key}`
     }
 
     const img = await fetch(imgUrl)

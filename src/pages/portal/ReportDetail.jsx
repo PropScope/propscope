@@ -124,7 +124,7 @@ export default function ReportDetail() {
             src={photoUrl}
             alt={r.address}
             onError={() => setPhotoOk(false)}
-            className="mb-5 block w-full rounded-xl ring-1 ring-ink-100 bg-ink-50"
+            className="mb-5 block h-72 w-full rounded-xl object-cover object-center ring-1 ring-ink-100 bg-ink-50"
           />
         )}
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
