@@ -123,3 +123,20 @@ export async function updateReport(id, patch) {
   }
   return flatten(await res.json())
 }
+
+// Permanently delete a report (server-side, ownership-verified).
+export async function deleteReport(id) {
+  const { data: sess } = await supabase.auth.getSession()
+  const token = sess && sess.session && sess.session.access_token
+  const res = await fetch('/api/delete-report', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}) },
+    body: JSON.stringify({ id }),
+  })
+  if (!res.ok) {
+    let msg = 'Could not delete this report.'
+    try { const e = await res.json(); if (e && e.error) msg = e.error } catch {}
+    throw new Error(msg)
+  }
+  return true
+}

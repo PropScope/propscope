@@ -1,16 +1,16 @@
 import { useState, useEffect } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Cell,
 } from 'recharts'
 import {
-  ArrowLeft, ArrowRight, MapPin, Download, Share2, Loader2, TrendingUp, AlertTriangle, FileText, Pencil, Save, X,
+  ArrowLeft, ArrowRight, MapPin, Download, Share2, Loader2, TrendingUp, AlertTriangle, FileText, Pencil, Save, X, Trash2,
 } from 'lucide-react'
 import ScoreRing from '../../components/ui/ScoreRing.jsx'
 import Stat from '../../components/ui/Stat.jsx'
 import StreetViewEmbed from '../../components/portal/StreetViewEmbed.jsx'
 import { reportDetail } from '../../lib/mockData.js'
-import { getReport, listReports, updateReport } from '../../lib/reports.js'
+import { getReport, listReports, updateReport, deleteReport } from '../../lib/reports.js'
 import { recompute, editPatch } from '../../lib/underwrite.js'
 import { downloadInvestorReport, downloadSellerSummary } from '../../lib/pdf.js'
 import { useAuth } from '../../context/AuthContext.jsx'
@@ -32,6 +32,7 @@ const n = (v) => Number(v) || 0
 
 export default function ReportDetail() {
   const { id } = useParams()
+  const nav = useNavigate()
   const { user } = useAuth()
   const contact = {
     name: user?.name,
@@ -49,6 +50,10 @@ export default function ReportDetail() {
   const [form, setForm] = useState({ purchasePrice: '', arv: '', rehab: '', monthlyRent: '' })
   const [saving, setSaving] = useState(false)
   const [saveErr, setSaveErr] = useState('')
+  const [showDelete, setShowDelete] = useState(false)
+  const [delText, setDelText] = useState('')
+  const [deleting, setDeleting] = useState(false)
+  const [delErr, setDelErr] = useState('')
 
   useEffect(() => {
     let active = true
@@ -106,6 +111,16 @@ export default function ReportDetail() {
     } catch (e) {
       setSaveErr((e && e.message) || 'Could not save your changes.')
     } finally { setSaving(false) }
+  }
+
+  const doDelete = async () => {
+    setDeleting(true); setDelErr('')
+    try {
+      await deleteReport(r.id)
+      nav('/app/reports')
+    } catch (e) {
+      setDelErr((e && e.message) || 'Could not delete this report.'); setDeleting(false)
+    }
   }
 
   const fullAddress = [r.address, r.city, r.state, r.zip].filter(Boolean).join(', ')
@@ -170,6 +185,7 @@ export default function ReportDetail() {
             <div className="flex flex-col gap-2">
               <button onClick={() => downloadInvestorReport(r, { contact })} className="btn-primary"><Download size={16} /> PDF</button>
               {!editing && <button onClick={startEdit} className="btn-secondary"><Pencil size={16} /> Edit numbers</button>}
+              {!editing && <button onClick={() => { setDelText(''); setDelErr(''); setShowDelete(true) }} className="btn-secondary text-rose-600 hover:bg-rose-50"><Trash2 size={16} /> Delete</button>}
             </div>
           </div>
         </div>
@@ -380,6 +396,28 @@ export default function ReportDetail() {
       <p className="mt-6 text-center text-xs text-ink-400">
         Estimates for informational purposes only. Verify all figures before making an offer. Not financial advice.
       </p>
+
+      {showDelete && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-ink-900/50 p-4" onClick={() => !deleting && setShowDelete(false)}>
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl ring-1 ring-ink-200" onClick={(e) => e.stopPropagation()}>
+            <h3 className="flex items-center gap-2 text-lg font-bold text-rose-600"><Trash2 size={18} /> Delete this report?</h3>
+            <p className="mt-2 text-sm text-ink-600">
+              This permanently deletes the report for <span className="font-semibold text-ink-900">{r.address}</span>. This can't be undone.
+            </p>
+            <p className="mt-4 text-sm text-ink-600">Type <span className="font-semibold text-ink-900">delete</span> to confirm:</p>
+            <input autoFocus value={delText} onChange={(e) => setDelText(e.target.value)} placeholder="delete"
+              className="mt-1 w-full rounded-lg border-0 bg-white px-3.5 py-2.5 text-sm text-ink-900 ring-1 ring-inset ring-ink-200 focus:ring-2 focus:ring-rose-500 outline-none" />
+            {delErr && <div className="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm text-rose-700">{delErr}</div>}
+            <div className="mt-6 flex items-center justify-end gap-2">
+              <button onClick={() => setShowDelete(false)} disabled={deleting} className="btn-secondary">Cancel</button>
+              <button onClick={doDelete} disabled={deleting || delText.trim().toLowerCase() !== 'delete'}
+                className="btn inline-flex items-center gap-2 rounded-lg bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-rose-700 disabled:opacity-40">
+                {deleting ? <><Loader2 size={16} className="animate-spin" /> Deleting…</> : <><Trash2 size={16} /> Delete report</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }
