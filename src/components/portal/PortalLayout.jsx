@@ -31,7 +31,7 @@ export default function PortalLayout() {
       {/* Sidebar */}
       <aside className={`fixed inset-y-0 left-0 z-50 w-64 transform border-r border-ink-200 bg-white transition-transform lg:translate-x-0 ${open ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex h-16 items-center justify-between border-b border-ink-100 px-5">
-          <Logo />
+          <Logo to="/app" />
           <button className="lg:hidden text-ink-500" onClick={() => setOpen(false)}><X size={20} /></button>
         </div>
         <nav className="flex flex-col gap-1 p-3">
