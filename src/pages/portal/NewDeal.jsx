@@ -145,8 +145,8 @@ export default function NewDeal() {
                   </button>
                 ))}
               </div>
-              <div className="mt-3 flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900">
-                <Sparkles size={18} className="mt-0.5 shrink-0 text-amber-600" />
+              <div className="mt-3 flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
+                <Sparkles size={18} className="mt-0.5 shrink-0 text-emerald-600" />
                 <span>The AI sizes the rehab from your pick, the square footage, and local market costs. Not sure? <b>Moderate</b> is the safe middle — you can change it, or type your own rehab number above, anytime.</span>
               </div>
             </div>
