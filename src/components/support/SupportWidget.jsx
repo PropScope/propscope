@@ -4,7 +4,25 @@ import { MessageCircle, X, Send, Loader2, Mail, Mic } from 'lucide-react'
 const SUPPORT_EMAIL = 'support@getpropscope.com'
 const GREETING = "Hi! I'm the PropScope assistant. Ask me anything about how PropScope works, pricing, your reports, or billing."
 
+// The widget is mounted at the app root (outside the portal's dark-mode scope),
+// so it detects dark mode itself and applies dark colors directly.
+function useDark() {
+  const [dark, setDark] = useState(() =>
+    typeof document !== 'undefined' && document.documentElement.classList.contains('dark'))
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+    const el = document.documentElement
+    const update = () => setDark(el.classList.contains('dark'))
+    update()
+    const obs = new MutationObserver(update)
+    obs.observe(el, { attributes: true, attributeFilter: ['class'] })
+    return () => obs.disconnect()
+  }, [])
+  return dark
+}
+
 export default function SupportWidget() {
+  const dark = useDark()
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState([{ role: 'assistant', content: GREETING }])
   const [input, setInput] = useState('')
@@ -64,6 +82,18 @@ export default function SupportWidget() {
     try { rec.start() } catch (e) { setListening(false) }
   }
 
+  // Theme-aware class fragments
+  const panel = dark ? 'border-[#26344c] bg-[#0f1a2e]' : 'border-slate-200 bg-white'
+  const body = dark ? 'bg-[#0c1526]' : 'bg-slate-50'
+  const botBubble = dark ? 'bg-[#18243c] text-slate-100 ring-1 ring-[#26344c]' : 'bg-white text-slate-700 ring-1 ring-slate-200'
+  const loadBubble = dark ? 'bg-[#18243c] text-slate-400 ring-1 ring-[#26344c]' : 'bg-white text-slate-400 ring-1 ring-slate-200'
+  const inputBar = dark ? 'border-[#26344c] bg-[#0f1a2e]' : 'border-slate-200 bg-white'
+  const textareaCls = dark
+    ? 'bg-[#0c1526] text-slate-100 border-[#26344c] placeholder:text-slate-500'
+    : 'bg-white text-slate-800 border-slate-300 placeholder:text-slate-400'
+  const micIdle = dark ? 'bg-[#18243c] text-slate-300 hover:bg-[#22304a]' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+  const emailCls = dark ? 'text-slate-400 hover:text-blue-200' : 'text-slate-400 hover:text-[#213f66]'
+
   return (
     <>
       <button
@@ -75,7 +105,7 @@ export default function SupportWidget() {
       </button>
 
       {open && (
-        <div className="fixed bottom-24 right-5 z-[60] flex h-[520px] w-[360px] max-w-[calc(100vw-2.5rem)] flex-col overflow-hidden rounded-2xl border border-ink-200 bg-white shadow-2xl">
+        <div className={`fixed bottom-24 right-5 z-[60] flex h-[520px] w-[360px] max-w-[calc(100vw-2.5rem)] flex-col overflow-hidden rounded-2xl border shadow-2xl ${panel}`}>
           <div className="flex items-center justify-between bg-[#213f66] px-4 py-3 text-white">
             <div>
               <p className="text-sm font-semibold">PropScope Support</p>
@@ -84,23 +114,23 @@ export default function SupportWidget() {
             <button onClick={() => setOpen(false)} className="text-blue-100 hover:text-white"><X size={18} /></button>
           </div>
 
-          <div className="flex-1 space-y-3 overflow-y-auto bg-ink-50 p-3">
+          <div className={`flex-1 space-y-3 overflow-y-auto p-3 ${body}`}>
             {messages.map((m, i) => (
               <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[82%] whitespace-pre-wrap rounded-2xl px-3 py-2 text-sm leading-relaxed ${m.role === 'user' ? 'bg-[#213f66] text-white' : 'bg-white text-ink-700 ring-1 ring-ink-200'}`}>
+                <div className={`max-w-[82%] whitespace-pre-wrap rounded-2xl px-3 py-2 text-sm leading-relaxed ${m.role === 'user' ? 'bg-[#213f66] text-white' : botBubble}`}>
                   {m.content}
                 </div>
               </div>
             ))}
             {loading && (
               <div className="flex justify-start">
-                <div className="rounded-2xl bg-white px-3 py-2 text-ink-400 ring-1 ring-ink-200"><Loader2 size={16} className="animate-spin" /></div>
+                <div className={`rounded-2xl px-3 py-2 ${loadBubble}`}><Loader2 size={16} className="animate-spin" /></div>
               </div>
             )}
             <div ref={endRef} />
           </div>
 
-          <div className="border-t border-ink-200 bg-white p-2">
+          <div className={`border-t p-2 ${inputBar}`}>
             <div className="flex items-end gap-2">
               <textarea
                 rows={1}
@@ -108,11 +138,11 @@ export default function SupportWidget() {
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
                 placeholder={listening ? 'Listening… speak now' : 'Type or tap the mic to speak…'}
-                className="max-h-24 flex-1 resize-none rounded-lg border border-ink-200 bg-white px-3 py-2 text-sm text-ink-900 placeholder:text-ink-400 outline-none focus:border-[#213f66]"
+                className={`max-h-24 flex-1 resize-none rounded-lg border px-3 py-2 text-sm outline-none focus:border-[#213f66] ${textareaCls}`}
               />
               {supportsVoice && (
                 <button onClick={toggleMic} title={listening ? 'Stop listening' : 'Speak your question'}
-                  className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg transition ${listening ? 'bg-rose-600 text-white animate-pulse' : 'bg-ink-100 text-ink-600 hover:bg-ink-200'}`}>
+                  className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg transition ${listening ? 'bg-rose-600 text-white animate-pulse' : micIdle}`}>
                   <Mic size={16} />
                 </button>
               )}
@@ -120,7 +150,7 @@ export default function SupportWidget() {
                 <Send size={16} />
               </button>
             </div>
-            <a href={`mailto:${SUPPORT_EMAIL}`} className="mt-2 flex items-center justify-center gap-1.5 text-xs text-ink-400 transition hover:text-[#213f66]">
+            <a href={`mailto:${SUPPORT_EMAIL}`} className={`mt-2 flex items-center justify-center gap-1.5 text-xs transition ${emailCls}`}>
               <Mail size={12} /> Prefer email? {SUPPORT_EMAIL}
             </a>
           </div>
