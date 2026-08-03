@@ -237,9 +237,6 @@ export default function NewDeal() {
                 {submitting ? <><Loader2 size={16} className="animate-spin" /> Updating…</> : <>Update report <Sparkles size={16} /></>}
               </button>
             </div>
-            <p className="mt-3 text-center text-xs text-ink-400">
-              <button onClick={() => runGenerate()} disabled={submitting} className="underline hover:text-ink-600">Keep both instead</button>
-            </p>
           </div>
         </div>
       )}
