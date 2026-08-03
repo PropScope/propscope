@@ -145,7 +145,10 @@ export default function NewDeal() {
                   </button>
                 ))}
               </div>
-              <p className="mt-2 text-xs text-ink-400">The AI sizes the rehab from your pick, the square footage, and local market costs. Not sure? Moderate is the safe middle — you can change it, or type your own rehab number above, anytime.</p>
+              <div className="mt-3 flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900">
+                <Sparkles size={18} className="mt-0.5 shrink-0 text-amber-600" />
+                <span>The AI sizes the rehab from your pick, the square footage, and local market costs. Not sure? <b>Moderate</b> is the safe middle — you can change it, or type your own rehab number above, anytime.</span>
+              </div>
             </div>
 
             <div className="mt-4 flex items-start gap-2 rounded-xl bg-brand-50 p-4 text-sm text-brand-800">
