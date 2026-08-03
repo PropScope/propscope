@@ -77,19 +77,20 @@ export async function getReport(id) {
   return flatten(data)
 }
 
-// Persist edited numbers. Splits a flattened patch into top-level columns and the jsonb `data`.
-const COLUMN_KEYS = ['address', 'city', 'state', 'zip', 'tier', 'strategy', 'status', 'score', 'verdict']
+// Persist edited numbers through a secure server endpoint (service role bypasses RLS
+// after verifying ownership). Client-side update is blocked by row-level security.
 export async function updateReport(id, patch) {
-  const { data: existing, error: ge } = await supabase.from('reports').select('data').eq('id', id).maybeSingle()
-  if (ge) throw ge
-  const cols = {}
-  const dataPatch = {}
-  Object.entries(patch || {}).forEach(([k, v]) => {
-    if (COLUMN_KEYS.includes(k)) cols[k] = v
-    else dataPatch[k] = v
+  const { data: sess } = await supabase.auth.getSession()
+  const token = sess && sess.session && sess.session.access_token
+  const res = await fetch('/api/update-report', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}) },
+    body: JSON.stringify({ id, patch }),
   })
-  const newData = { ...((existing && existing.data) || {}), ...dataPatch }
-  const { data, error } = await supabase.from('reports').update({ ...cols, data: newData }).eq('id', id).select().single()
-  if (error) throw error
-  return flatten(data)
+  if (!res.ok) {
+    let msg = 'Could not save your changes.'
+    try { const e = await res.json(); if (e && e.error) msg = e.error } catch {}
+    throw new Error(msg)
+  }
+  return flatten(await res.json())
 }
