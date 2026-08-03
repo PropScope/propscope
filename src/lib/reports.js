@@ -40,7 +40,7 @@ export async function generateReport(input, { paid = false } = {}) {
     status: 'complete',
     score: Math.round(Number(ai.score) || 0),
     verdict: ai.verdict || 'Moderate',
-    data: { ...ai, thumb: THUMBS[Math.floor(Math.random() * THUMBS.length)] },
+    data: { ...ai, rehabScope: input.rehabScope || 'ai', thumb: THUMBS[Math.floor(Math.random() * THUMBS.length)] },
   }
 
   const { data, error } = await supabase.from('reports').insert(record).select().single()

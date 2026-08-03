@@ -21,7 +21,7 @@ export default function NewDeal() {
   const [form, setForm] = useState({
     address: '', city: '', state: '', zip: '', beds: '', baths: '', sqft: '', year: '',
     purchasePrice: '', rehab: '', rent: '', arv: '',
-    strategy: 'BRRRR', notes: '', noPrice: false,
+    strategy: 'BRRRR', notes: '', noPrice: false, rehabScope: 'ai',
   })
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
   const next = () => setStep((s) => Math.min(s + 1, steps.length - 1))
@@ -44,7 +44,7 @@ export default function NewDeal() {
     address: form.address, city: form.city, state: form.state, zip: form.zip,
     beds: form.beds, baths: form.baths, sqft: form.sqft, year: form.year,
     purchasePrice: form.purchasePrice, rehab: form.rehab, rent: form.rent, arv: form.arv,
-    strategy: form.strategy, notes: form.notes,
+    strategy: form.strategy, notes: form.notes, rehabScope: form.rehabScope,
     tier: plan ? plan.id : 'deal-check',
   })
 
@@ -127,6 +127,28 @@ export default function NewDeal() {
               <Field label="Rehab budget"><input className="input" placeholder="Estimate for me" value={form.rehab} onChange={set('rehab')} /></Field>
               <Field label="Expected monthly rent"><input className="input" placeholder="Estimate for me" value={form.rent} onChange={set('rent')} /></Field>
             </div>
+
+            <div className="mt-5">
+              <label className="label">Property condition — how much work does it need?</label>
+              <div className="mt-1 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {[
+                  ['ai', 'Let AI estimate', "We'll infer it from the data"],
+                  ['cosmetic', 'Cosmetic', 'Paint, floors, fixtures'],
+                  ['moderate', 'Moderate', 'Kitchen, baths & systems'],
+                  ['gut', 'Full gut', 'Down to the studs'],
+                ].map(([val, title, desc]) => (
+                  <button key={val} type="button" onClick={() => setForm((f) => ({ ...f, rehabScope: val }))}
+                    className={`rounded-xl border p-3 text-left transition ${
+                      form.rehabScope === val ? 'border-brand-500 bg-brand-50 ring-1 ring-brand-500' : 'border-ink-200 hover:border-ink-300'
+                    }`}>
+                    <span className="block text-sm font-semibold text-ink-900">{title}</span>
+                    <span className="mt-0.5 block text-xs text-ink-500">{desc}</span>
+                  </button>
+                ))}
+              </div>
+              <p className="mt-2 text-xs text-ink-400">This is the one call only you can make from the photos — the AI sizes the rehab from your pick, the square footage, and local costs. A rehab number typed above overrides this.</p>
+            </div>
+
             <div className="mt-4 flex items-start gap-2 rounded-xl bg-brand-50 p-4 text-sm text-brand-800">
               <Sparkles size={18} className="mt-0.5 shrink-0" />
               ARV, rehab and rent are optional — leave them blank and our engine estimates from comps and market data. You can fine-tune every number on the report afterward.

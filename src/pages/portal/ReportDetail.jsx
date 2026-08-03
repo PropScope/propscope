@@ -156,6 +156,9 @@ export default function ReportDetail() {
               <div className="mt-2 flex flex-wrap gap-2 text-xs">
                 <span className="badge bg-ink-100 text-ink-600">{tier?.name}</span>
                 <span className="badge bg-brand-50 text-brand-700">{r.strategy}</span>
+                {r.rehabScope && r.rehabScope !== 'ai' && (
+                  <span className="badge bg-amber-50 text-amber-700">{r.rehabScope === 'gut' ? 'Full-gut' : r.rehabScope.charAt(0).toUpperCase() + r.rehabScope.slice(1)} rehab basis</span>
+                )}
               </div>
             </div>
           </div>

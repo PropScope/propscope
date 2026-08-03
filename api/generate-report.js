@@ -92,6 +92,15 @@ export default async function handler(req, res) {
   const d = (req.body && typeof req.body === 'object') ? req.body : {}
   const market = await getMarketData(d)
 
+  const SCOPE = {
+    cosmetic: 'a LIGHT / COSMETIC rehab only — paint, flooring, fixtures, minor repairs and cleanup. Roughly $10-20 per square foot in a typical U.S. market; adjust for the local cost of labor and materials.',
+    moderate: 'a MODERATE rehab — updated kitchen and bathrooms, some mechanical/systems work (HVAC, electrical, plumbing spot repairs), and cosmetic updates throughout. Roughly $25-45 per square foot in a typical market; adjust for local costs.',
+    gut: 'a FULL GUT renovation — down to the studs: new kitchen, bathrooms, flooring, drywall, and all major systems, with possible structural or code work. Roughly $50-90+ per square foot; adjust for local costs and the age of the property.',
+  }
+  const scopeLine = (!d.rehab && SCOPE[d.rehabScope])
+    ? `\nINVESTOR CONDITION ASSESSMENT: The investor inspected this property and assessed it as needing ${SCOPE[d.rehabScope]} Base your rehab budget and itemized rehab list on THIS condition level and the property's square footage, calibrated to the local market. Do not override the condition level the investor selected.`
+    : ''
+
   const marketBlock = market ? `
 REAL MARKET DATA (from RentCast — treat as authoritative, not estimates):
 - Current market value (as-is): ${market.value ? '$' + market.value : 'n/a'}${market.valueLow && market.valueHigh ? ` (range $${market.valueLow}-$${market.valueHigh})` : ''}
@@ -113,7 +122,7 @@ PROPERTY
 - After-repair value (ARV): ${d.arv || '(estimate it)'}
 - Investor strategy: ${d.strategy || '(recommend the best one)'}
 - Investor notes: ${d.notes || 'none'}
-${marketBlock}
+${marketBlock}${scopeLine}
 Estimate any missing values from typical conditions for that market. Where REAL MARKET DATA is provided above, it overrides generic estimates.
 Keep the numbers internally consistent (max allowable offer ~= 70% of ARV minus rehab; cap rate = annual NOI / price; cash-on-cash from cash invested; etc.).
 
