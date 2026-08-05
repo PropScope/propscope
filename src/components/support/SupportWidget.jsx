@@ -42,7 +42,7 @@ export default function SupportWidget() {
   const send = async () => {
     const text = input.trim()
     if (!text || loading) return
-    if (listening) { try { recRef.current?.stop() } catch (e) {} }
+    stopMic()   // fully detach the recognizer so no late result re-fills the box after we clear it
     const next = [...messages, { role: 'user', content: text }]
     setMessages(next)
     setInput('')
@@ -66,17 +66,31 @@ export default function SupportWidget() {
     }
   }
 
+  // Fully tear down the recognizer: detach handlers first so no late/queued
+  // result event can fire and re-fill the input after we've cleared or stopped.
+  const stopMic = () => {
+    const rec = recRef.current
+    if (rec) {
+      rec.onresult = null
+      rec.onerror = null
+      rec.onend = null
+      try { rec.abort() } catch (e) { try { rec.stop() } catch (_) {} }
+    }
+    recRef.current = null
+    setListening(false)
+  }
+
   const toggleMic = () => {
     if (!supportsVoice) { setMicError('Voice input isn’t supported in this browser. Try Chrome, Edge, or Safari.'); return }
-    // Already listening → stop.
-    if (listening || recRef.current) { try { recRef.current?.stop() } catch (e) {} ; return }
+    // Already listening → stop and keep whatever is already in the box.
+    if (listening || recRef.current) { stopMic(); return }
     setMicError('')
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition
     let rec
     try { rec = new SR() } catch (e) { setMicError('Couldn’t start the microphone. Please type your question.'); return }
     rec.lang = 'en-US'
     rec.interimResults = true   // stream words live as the user speaks (no end-of-speech lag)
-    rec.continuous = false
+    rec.continuous = true       // keep listening through natural pauses instead of cutting off
     let gotSpeech = false
     baseInputRef.current = input        // preserve anything already typed
     finalRef.current = ''
