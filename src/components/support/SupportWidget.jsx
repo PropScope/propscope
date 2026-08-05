@@ -31,6 +31,8 @@ export default function SupportWidget() {
   const [micError, setMicError] = useState('')
   const endRef = useRef(null)
   const recRef = useRef(null)
+  const baseInputRef = useRef('')
+  const finalRef = useRef('')
   const supportsVoice = typeof window !== 'undefined' && !!(window.SpeechRecognition || window.webkitSpeechRecognition)
 
   useEffect(() => {
@@ -73,12 +75,21 @@ export default function SupportWidget() {
     let rec
     try { rec = new SR() } catch (e) { setMicError('Couldn’t start the microphone. Please type your question.'); return }
     rec.lang = 'en-US'
-    rec.interimResults = false
+    rec.interimResults = true   // stream words live as the user speaks (no end-of-speech lag)
     rec.continuous = false
     let gotSpeech = false
+    baseInputRef.current = input        // preserve anything already typed
+    finalRef.current = ''
     rec.onresult = (e) => {
-      const t = Array.from(e.results).map((r) => r[0].transcript).join(' ').trim()
-      if (t) { gotSpeech = true; setInput((prev) => (prev ? prev.trim() + ' ' : '') + t) }
+      let interim = ''
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const res = e.results[i]
+        if (res.isFinal) { finalRef.current += res[0].transcript + ' '; gotSpeech = true }
+        else interim += res[0].transcript
+      }
+      const base = baseInputRef.current
+      const combined = ((base ? base.trim() + ' ' : '') + (finalRef.current + interim).trim())
+      setInput(combined)
     }
     rec.onerror = (e) => {
       const code = e && e.error
