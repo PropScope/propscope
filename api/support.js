@@ -80,12 +80,44 @@ async function handleTranscribe(req, res, d) {
   }
 }
 
+// --- Text-to-speech via ElevenLabs (Adam voice) — used to generate ad voiceovers ---
+async function handleTTS(req, res, d) {
+  const key = process.env.ELEVENLABS_API_KEY
+  if (!key) { res.status(500).json({ error: 'TTS not configured.' }); return }
+  const text = String(d.tts).slice(0, 5000)
+  const voiceId = (typeof d.voiceId === 'string' && d.voiceId) || 'pNInz6obpgDQGcFmaJgB' // Adam
+  try {
+    const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+      method: 'POST',
+      headers: { 'xi-api-key': key, 'content-type': 'application/json', accept: 'audio/mpeg' },
+      body: JSON.stringify({
+        text,
+        model_id: 'eleven_multilingual_v2',
+        voice_settings: { stability: 0.5, similarity_boost: 0.75, style: 0.0, use_speaker_boost: true },
+      }),
+    })
+    if (!r.ok) {
+      const detail = await r.text().catch(() => '')
+      console.error('ElevenLabs TTS error', r.status, detail.slice(0, 300))
+      res.status(502).json({ error: 'TTS unavailable' })
+      return
+    }
+    const ab = await r.arrayBuffer()
+    res.status(200).json({ audio: Buffer.from(ab).toString('base64') })
+  } catch (e) {
+    res.status(500).json({ error: 'TTS failed' })
+  }
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') { res.status(405).json({ error: 'Method not allowed' }); return }
   const d = (req.body && typeof req.body === 'object') ? req.body : {}
 
   // Voice mode: the widget posts { audio, mimeType } → transcribe and return text.
   if (typeof d.audio === 'string' && d.audio) { return handleTranscribe(req, res, d) }
+
+  // TTS mode (internal, for generating ad voiceovers): { tts, voiceId? } → base64 mp3.
+  if (typeof d.tts === 'string' && d.tts) { return handleTTS(req, res, d) }
 
   // Chat mode.
   const key = process.env.ANTHROPIC_API_KEY
