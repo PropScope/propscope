@@ -39,25 +39,36 @@ export default function SupportWidget() {
   const [transcribing, setTranscribing] = useState(false)
   const [micError, setMicError] = useState('')
   const endRef = useRef(null)
+
+  // Accurate path: record audio → ElevenLabs Scribe.
   const recorderRef = useRef(null)
   const chunksRef = useRef([])
   const streamRef = useRef(null)
+  const baseInputRef = useRef('')          // text already in the box when recording started
 
-  // Voice needs microphone capture + MediaRecorder (records audio we send to a
-  // professional speech-to-text service, rather than the flaky browser engine).
+  // Live-preview path: the browser's own speech engine, used ONLY to show words
+  // on screen as you speak (instant feedback). The accurate ElevenLabs transcript
+  // replaces this preview the moment you stop.
+  const liveRecRef = useRef(null)
+  const livePreviewRef = useRef('')        // finalized preview text so far
+  const liveStopRef = useRef(false)        // true = don't auto-restart the live engine
+
   const supportsVoice =
     typeof navigator !== 'undefined' &&
     !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) &&
     typeof window !== 'undefined' &&
     typeof window.MediaRecorder !== 'undefined'
 
+  const supportsLive =
+    typeof window !== 'undefined' && !!(window.SpeechRecognition || window.webkitSpeechRecognition)
+
   useEffect(() => {
     if (open) endRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, open, loading, transcribing])
 
-  // Clean up the mic stream if the component unmounts mid-recording.
   useEffect(() => () => {
     try { streamRef.current?.getTracks().forEach((t) => t.stop()) } catch (e) {}
+    try { liveStopRef.current = true; liveRecRef.current?.abort() } catch (e) {}
   }, [])
 
   const send = async () => {
@@ -91,10 +102,45 @@ export default function SupportWidget() {
     streamRef.current = null
   }
 
-  // Send the recorded audio to our serverless endpoint, which hands it to
-  // ElevenLabs Scribe and returns clean text.
+  // ---- Live preview (browser engine): visual feedback only ----
+  const startLivePreview = () => {
+    if (!supportsLive) return
+    liveStopRef.current = false
+    livePreviewRef.current = ''
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition
+    const startOne = () => {
+      let rec
+      try { rec = new SR() } catch (e) { return }
+      rec.lang = 'en-US'
+      rec.interimResults = true
+      rec.continuous = true
+      rec.onresult = (e) => {
+        let interim = ''
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+          const res = e.results[i]
+          if (res.isFinal) livePreviewRef.current += res[0].transcript + ' '
+          else interim += res[0].transcript
+        }
+        const base = baseInputRef.current
+        setInput(((base ? base.trim() + ' ' : '') + (livePreviewRef.current + interim).trim()))
+      }
+      rec.onerror = () => {}
+      rec.onend = () => { if (!liveStopRef.current) { try { rec.start() } catch (e) { try { startOne() } catch (_) {} } } }
+      liveRecRef.current = rec
+      try { rec.start() } catch (e) {}
+    }
+    startOne()
+  }
+
+  const stopLivePreview = () => {
+    liveStopRef.current = true
+    try { liveRecRef.current?.abort() } catch (e) {}
+    liveRecRef.current = null
+  }
+
+  // ---- Accurate transcription (ElevenLabs Scribe) ----
   const transcribe = async (blob) => {
-    if (!blob || !blob.size) return
+    if (!blob || !blob.size) { setTranscribing(false); return }
     setTranscribing(true)
     try {
       const audio = await blobToBase64(blob)
@@ -106,18 +152,20 @@ export default function SupportWidget() {
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data.error || 'transcribe failed')
       const t = (data.text || '').trim()
-      if (t) setInput((prev) => (prev ? prev.trim() + ' ' : '') + t)
-      else setMicError("I didn't catch any speech — tap the mic and try again.")
+      const base = baseInputRef.current
+      if (t) setInput((base ? base.trim() + ' ' : '') + t)          // replace preview with accurate text
+      else if (!livePreviewRef.current.trim()) setMicError("I didn't catch any speech — tap the mic and try again.")
     } catch (e) {
-      setMicError('Couldn’t transcribe that. Please try again, or type your question.')
+      // Keep whatever the live preview captured; just note the accurate pass failed.
+      if (!livePreviewRef.current.trim()) setMicError('Couldn’t transcribe that. Please try again, or type your question.')
     } finally {
       setTranscribing(false)
     }
   }
 
   const toggleMic = async () => {
-    // Stop an in-progress recording (its onstop handler kicks off transcription).
-    if (recording) {
+    if (recording) {                       // stop
+      stopLivePreview()
       try { recorderRef.current?.stop() } catch (e) {}
       return
     }
@@ -129,13 +177,9 @@ export default function SupportWidget() {
       stream = await navigator.mediaDevices.getUserMedia({ audio: true })
     } catch (e) {
       const name = e && e.name
-      if (name === 'NotAllowedError' || name === 'SecurityError') {
-        setMicError('Microphone access is blocked. Allow mic access in your browser’s site settings, then try again.')
-      } else if (name === 'NotFoundError') {
-        setMicError('No microphone was found. Check that one is connected.')
-      } else {
-        setMicError('Couldn’t start the microphone. Please type your question.')
-      }
+      if (name === 'NotAllowedError' || name === 'SecurityError') setMicError('Microphone access is blocked. Allow mic access in your browser’s site settings, then try again.')
+      else if (name === 'NotFoundError') setMicError('No microphone was found. Check that one is connected.')
+      else setMicError('Couldn’t start the microphone. Please type your question.')
       return
     }
     streamRef.current = stream
@@ -144,6 +188,7 @@ export default function SupportWidget() {
       releaseStream(); setMicError('Couldn’t start the microphone. Please type your question.'); return
     }
     chunksRef.current = []
+    baseInputRef.current = input
     recorder.ondataavailable = (e) => { if (e.data && e.data.size) chunksRef.current.push(e.data) }
     recorder.onstop = async () => {
       setRecording(false)
@@ -157,6 +202,7 @@ export default function SupportWidget() {
       releaseStream(); setMicError('Couldn’t start the microphone. Please type your question.'); return
     }
     setRecording(true)
+    startLivePreview()                     // show words live while recording
   }
 
   // Theme-aware class fragments
@@ -171,7 +217,9 @@ export default function SupportWidget() {
   const micIdle = dark ? 'bg-[#18243c] text-slate-300 hover:bg-[#22304a]' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
   const emailCls = dark ? 'text-slate-400 hover:text-blue-200' : 'text-slate-400 hover:text-[#213f66]'
 
-  const placeholder = recording ? 'Recording… tap the mic to stop' : transcribing ? 'Transcribing…' : 'Type or tap the mic to speak…'
+  const placeholder = recording
+    ? (supportsLive ? 'Listening… speak, then tap the mic to stop' : 'Recording… tap the mic to stop')
+    : transcribing ? 'Polishing your words…' : 'Type or tap the mic to speak…'
 
   return (
     <>
@@ -210,6 +258,15 @@ export default function SupportWidget() {
           </div>
 
           <div className={`border-t p-2 ${inputBar}`}>
+            {(recording || transcribing) && (
+              <div className={`mb-1.5 flex items-center gap-2 px-1 text-xs ${dark ? 'text-slate-300' : 'text-slate-500'}`}>
+                {recording ? (
+                  <><span className="inline-block h-2 w-2 animate-pulse rounded-full bg-rose-500" /> Listening…</>
+                ) : (
+                  <><Loader2 size={12} className="animate-spin" /> Polishing your words…</>
+                )}
+              </div>
+            )}
             <div className="flex items-end gap-2">
               <textarea
                 rows={1}
