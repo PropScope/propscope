@@ -98,7 +98,7 @@ export default function SupportWidget() {
     setTranscribing(true)
     try {
       const audio = await blobToBase64(blob)
-      const res = await fetch('/api/transcribe', {
+      const res = await fetch('/api/support', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ audio, mimeType: blob.type || 'audio/webm' }),

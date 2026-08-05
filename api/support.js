@@ -1,5 +1,9 @@
 // Vercel serverless function — AI support assistant for PropScope, grounded in a knowledge base.
-// Uses the existing ANTHROPIC_API_KEY. If it fails, the client shows an email-support fallback.
+// Also handles voice transcription (ElevenLabs Scribe) for the support widget's mic, so the
+// two support features share ONE serverless function (Hobby plan allows max 12).
+// Uses ANTHROPIC_API_KEY for chat and ELEVENLABS_API_KEY for transcription.
+
+export const config = { api: { bodyParser: { sizeLimit: '10mb' } } }
 
 const KB = `You are the friendly, knowledgeable support assistant for PropScope, an automated real estate investment analysis web app. You know this product inside and out from the knowledge base below — answer confidently and specifically from it. Never guess or invent details. Keep replies clear and concise (2-5 sentences). Reply in plain conversational sentences — do NOT use markdown, asterisks, bullet points, or headings. Only discuss PropScope and general real estate investing basics; politely redirect anything unrelated.
 
@@ -42,12 +46,50 @@ PropScope works across U.S. residential markets. Comp and rent availability is s
 - Never invent prices, policies, or features beyond this knowledge base. If something isn't covered here, say you're not sure and point them to support@getpropscope.com.
 - PropScope is an informational analysis tool, not financial, investment, legal, or tax advice.`
 
+// --- Voice transcription via ElevenLabs Scribe ---
+async function handleTranscribe(req, res, d) {
+  const key = process.env.ELEVENLABS_API_KEY
+  if (!key) { res.status(500).json({ error: 'Voice transcription is not configured.' }); return }
+  const audioB64 = typeof d.audio === 'string' ? d.audio : ''
+  const mimeType = (typeof d.mimeType === 'string' && d.mimeType) || 'audio/webm'
+  if (!audioB64) { res.status(400).json({ error: 'No audio provided.' }); return }
+  let buf
+  try { buf = Buffer.from(audioB64, 'base64') } catch (e) { buf = null }
+  if (!buf || !buf.length) { res.status(400).json({ error: 'Invalid audio.' }); return }
+  try {
+    const ext = mimeType.includes('mp4') ? 'mp4' : mimeType.includes('ogg') ? 'ogg' : mimeType.includes('wav') ? 'wav' : 'webm'
+    const form = new FormData()
+    form.append('model_id', 'scribe_v1')
+    form.append('file', new Blob([buf], { type: mimeType }), `speech.${ext}`)
+    const r = await fetch('https://api.elevenlabs.io/v1/speech-to-text', {
+      method: 'POST',
+      headers: { 'xi-api-key': key, accept: 'application/json' },
+      body: form,
+    })
+    if (!r.ok) {
+      const detail = await r.text().catch(() => '')
+      console.error('ElevenLabs STT error', r.status, detail.slice(0, 500))
+      res.status(502).json({ error: 'Transcription service is unavailable right now.' })
+      return
+    }
+    const j = await r.json().catch(() => ({}))
+    const text = (j && typeof j.text === 'string') ? j.text.trim() : ''
+    res.status(200).json({ text })
+  } catch (e) {
+    res.status(500).json({ error: 'Could not transcribe the audio.' })
+  }
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') { res.status(405).json({ error: 'Method not allowed' }); return }
+  const d = (req.body && typeof req.body === 'object') ? req.body : {}
+
+  // Voice mode: the widget posts { audio, mimeType } → transcribe and return text.
+  if (typeof d.audio === 'string' && d.audio) { return handleTranscribe(req, res, d) }
+
+  // Chat mode.
   const key = process.env.ANTHROPIC_API_KEY
   if (!key) { res.status(500).json({ error: 'Support is temporarily unavailable.' }); return }
-
-  const d = (req.body && typeof req.body === 'object') ? req.body : {}
   const messages = Array.isArray(d.messages)
     ? d.messages
         .filter((m) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
