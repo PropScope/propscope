@@ -33,6 +33,7 @@ export default function SupportWidget() {
   const recRef = useRef(null)
   const baseInputRef = useRef('')
   const finalRef = useRef('')
+  const manualStopRef = useRef(false)   // true = user tapped stop / sent; don't auto-restart
   const supportsVoice = typeof window !== 'undefined' && !!(window.SpeechRecognition || window.webkitSpeechRecognition)
 
   useEffect(() => {
@@ -69,6 +70,7 @@ export default function SupportWidget() {
   // Fully tear down the recognizer: detach handlers first so no late/queued
   // result event can fire and re-fill the input after we've cleared or stopped.
   const stopMic = () => {
+    manualStopRef.current = true        // signal onend NOT to auto-restart
     const rec = recRef.current
     if (rec) {
       rec.onresult = null
@@ -80,50 +82,62 @@ export default function SupportWidget() {
     setListening(false)
   }
 
+  // Append newly-finalized speech into the input, streaming interim words live.
+  const handleResult = (e) => {
+    let interim = ''
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const res = e.results[i]
+      if (res.isFinal) finalRef.current += res[0].transcript + ' '
+      else interim += res[0].transcript
+    }
+    const base = baseInputRef.current
+    setInput(((base ? base.trim() + ' ' : '') + (finalRef.current + interim).trim()))
+  }
+
+  // Create + start one recognition session. Chrome ends a session after a short
+  // pause even with continuous=true, so onend restarts it (keep-alive) until the
+  // user taps stop or sends — this stops the tail of a sentence being dropped.
+  const startRec = () => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition
+    let rec
+    try { rec = new SR() } catch (e) { setMicError('Couldn’t start the microphone. Please type your question.'); setListening(false); return }
+    rec.lang = 'en-US'
+    rec.interimResults = true
+    rec.continuous = true
+    rec.onresult = handleResult
+    rec.onerror = (e) => {
+      const code = e && e.error
+      if (code === 'not-allowed' || code === 'service-not-allowed') {
+        manualStopRef.current = true
+        setMicError('Microphone access is blocked. Allow mic access in your browser’s site settings, then try again.')
+      } else if (code === 'audio-capture') {
+        manualStopRef.current = true
+        setMicError('No microphone was found. Check that one is connected.')
+      } else if (code === 'network') {
+        setMicError('Voice input needs a network connection. Please try again.')
+      }
+      // 'no-speech' / 'aborted' are benign while keep-alive is running — let onend restart.
+    }
+    rec.onend = () => {
+      if (manualStopRef.current) { recRef.current = null; setListening(false); return }
+      try { rec.start() }                       // restart same instance
+      catch (e) { startRec() }                   // if it refuses, spin up a fresh one
+    }
+    recRef.current = rec
+    try { rec.start() }
+    catch (e) { setListening(false); recRef.current = null; setMicError('Couldn’t start the microphone. Please type your question.') }
+  }
+
   const toggleMic = () => {
     if (!supportsVoice) { setMicError('Voice input isn’t supported in this browser. Try Chrome, Edge, or Safari.'); return }
     // Already listening → stop and keep whatever is already in the box.
     if (listening || recRef.current) { stopMic(); return }
     setMicError('')
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition
-    let rec
-    try { rec = new SR() } catch (e) { setMicError('Couldn’t start the microphone. Please type your question.'); return }
-    rec.lang = 'en-US'
-    rec.interimResults = true   // stream words live as the user speaks (no end-of-speech lag)
-    rec.continuous = true       // keep listening through natural pauses instead of cutting off
-    let gotSpeech = false
+    manualStopRef.current = false
     baseInputRef.current = input        // preserve anything already typed
     finalRef.current = ''
-    rec.onresult = (e) => {
-      let interim = ''
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        const res = e.results[i]
-        if (res.isFinal) { finalRef.current += res[0].transcript + ' '; gotSpeech = true }
-        else interim += res[0].transcript
-      }
-      const base = baseInputRef.current
-      const combined = ((base ? base.trim() + ' ' : '') + (finalRef.current + interim).trim())
-      setInput(combined)
-    }
-    rec.onerror = (e) => {
-      const code = e && e.error
-      if (code === 'not-allowed' || code === 'service-not-allowed') {
-        setMicError('Microphone access is blocked. Allow mic access in your browser’s site settings, then try again.')
-      } else if (code === 'no-speech') {
-        setMicError('I didn’t catch that — tap the mic and speak again.')
-      } else if (code === 'audio-capture') {
-        setMicError('No microphone was found. Check that one is connected.')
-      } else if (code === 'network') {
-        setMicError('Voice input needs a network connection. Please try again.')
-      } else if (code !== 'aborted') {
-        setMicError('Voice input hit a snag. Please type your question.')
-      }
-    }
-    rec.onend = () => { setListening(false); recRef.current = null; if (!gotSpeech) { /* keep any error already set */ } }
-    recRef.current = rec
     setListening(true)
-    try { rec.start() }
-    catch (e) { setListening(false); recRef.current = null; setMicError('Couldn’t start the microphone. Please type your question.') }
+    startRec()
   }
 
   // Theme-aware class fragments
