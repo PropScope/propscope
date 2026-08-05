@@ -69,7 +69,7 @@ async function handleTranscribe(req, res, d) {
     if (!r.ok) {
       const detail = await r.text().catch(() => '')
       console.error('ElevenLabs STT error', r.status, detail.slice(0, 500))
-      res.status(502).json({ error: 'Transcription service is unavailable right now.', debugStatus: r.status, debugDetail: detail.slice(0, 400) })
+      res.status(502).json({ error: 'Transcription service is unavailable right now.' })
       return
     }
     const j = await r.json().catch(() => ({}))
