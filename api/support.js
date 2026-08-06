@@ -29,8 +29,10 @@ Every report includes downloadable, branded, investor-grade PDFs: a full investo
 Your first report is free — no credit card required.
 - Deal Check: $36/month (or $29/month billed annually, $348/year) — 3 full reports per month. For new investors testing the waters.
 - Deal Analyzer: $99/month (or $79/month billed annually, $948/year) — 25 full reports per month, plus report history & dashboard and priority email support. Most popular; for active investors doing deals every month.
+- Deal Pro: $179/month (or $143/month billed annually, $1,716/year) — 100 full reports per month, everything in Deal Analyzer, priority support, and add-on report packs. For investors scaling up their volume.
 - Investor Pro: $249/month (or $199/month billed annually, $2,388/year) — up to 250 reports per month, priority support, and early access to new features. For power investors and small teams.
 Annual billing saves 20% versus monthly. Unused monthly reports do NOT roll over — your allowance resets at the start of each billing cycle. All plans are month-to-month (or annual) and you can cancel anytime.
+- Ran out of reports before month-end? Subscribers can buy an add-on report pack (extra reports that stack onto the current month) from the New Analysis screen, or upgrade to a higher tier. Add-on reports are used up first and reset with your normal monthly allowance.
 
 === ACCOUNTS, BILLING & SETTINGS ===
 - Sign up with email and password. In the Account page you can update your name, company, and phone, and there is a Log out button there. Forgot your password? Reset it from the login page.

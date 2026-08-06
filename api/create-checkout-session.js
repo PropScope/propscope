@@ -5,6 +5,7 @@
 const PRICING = {
   'deal-check':    { name: 'PropScope Deal Check',    month: 3600,  year: 34800 },
   'deal-analyzer': { name: 'PropScope Deal Analyzer', month: 9900,  year: 94800 },
+  'deal-pro':      { name: 'PropScope Deal Pro',      month: 17900, year: 171600 },
   'investor-pro':  { name: 'PropScope Investor Pro',  month: 24900, year: 238800 },
 }
 
