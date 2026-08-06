@@ -17,17 +17,31 @@ export default async function handler(req, res) {
     return
   }
   const d = (req.body && typeof req.body === 'object') ? req.body : {}
-  const tier = TIERS[d.tier] || TIERS['deal-analyzer']
   const origin = d.origin || req.headers.origin || `https://${req.headers.host}`
+
+  // Add-on report packs for subscribers who run low mid-month (credits stack onto the current month).
+  const PACKS = {
+    'pack-10': { cents: 4900, name: 'PropScope +10 Report Pack', desc: '10 extra reports added to this month', credits: 10 },
+    'pack-25': { cents: 9900, name: 'PropScope +25 Report Pack', desc: '25 extra reports added to this month', credits: 25 },
+  }
+  const isPack = !!(d.pack && PACKS[d.pack])
+  const item = isPack ? PACKS[d.pack] : (TIERS[d.tier] || TIERS['deal-analyzer'])
 
   const p = new URLSearchParams()
   p.append('mode', 'payment')
   p.append('line_items[0][quantity]', '1')
   p.append('line_items[0][price_data][currency]', 'usd')
-  p.append('line_items[0][price_data][unit_amount]', String(tier.cents))
-  p.append('line_items[0][price_data][product_data][name]', tier.name)
-  p.append('line_items[0][price_data][product_data][description]', tier.desc)
-  p.append('success_url', `${origin}/app/new?paid=1&session_id={CHECKOUT_SESSION_ID}`)
+  p.append('line_items[0][price_data][unit_amount]', String(item.cents))
+  p.append('line_items[0][price_data][product_data][name]', item.name)
+  p.append('line_items[0][price_data][product_data][description]', item.desc)
+  if (isPack) {
+    p.append('success_url', `${origin}/app/new?pack=1&session_id={CHECKOUT_SESSION_ID}`)
+    p.append('metadata[kind]', 'pack')
+    p.append('metadata[credits]', String(item.credits))
+    if (d.userId) p.append('metadata[userId]', d.userId)
+  } else {
+    p.append('success_url', `${origin}/app/new?paid=1&session_id={CHECKOUT_SESSION_ID}`)
+  }
   p.append('cancel_url', `${origin}/app/new?canceled=1`)
   p.append('allow_promotion_codes', 'true')
   if (d.email) p.append('customer_email', d.email)

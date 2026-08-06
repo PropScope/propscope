@@ -3,7 +3,8 @@ import { useNavigate, Link } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, Check, Loader2, Home, DollarSign, Target, Sparkles, Lock } from 'lucide-react'
 import PageHeader from '../../components/portal/PageHeader.jsx'
 import { planById, capForPlan } from '../../lib/plans.js'
-import { generateReport, reportCount, monthlyReportCount, findDuplicateReport } from '../../lib/reports.js'
+import { generateReport, reportCount, monthlyReportCount, findDuplicateReport, getExtraCredits } from '../../lib/reports.js'
+import { startPackCheckout, confirmCheckout } from '../../lib/billing.js'
 import { useAuth } from '../../context/AuthContext.jsx'
 
 const steps = ['Property', 'Numbers', 'Strategy']
@@ -17,7 +18,9 @@ export default function NewDeal() {
   const [step, setStep] = useState(0)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
-  const [usage, setUsage] = useState(null) // { total, month }
+  const [usage, setUsage] = useState(null) // { total, month, extra }
+  const [redeeming, setRedeeming] = useState(false)
+  const [packBusy, setPackBusy] = useState('')
   const [dup, setDup] = useState(null) // existing report for this address, if any
   const [form, setForm] = useState({
     address: '', city: '', state: '', zip: '', beds: '', baths: '', sqft: '', year: '',
@@ -28,18 +31,38 @@ export default function NewDeal() {
   const next = () => setStep((s) => Math.min(s + 1, steps.length - 1))
   const back = () => setStep((s) => Math.max(s - 1, 0))
 
+  const loadUsage = () =>
+    Promise.all([reportCount(), monthlyReportCount(), getExtraCredits()])
+      .then(([total, month, extra]) => setUsage({ total, month, extra }))
+      .catch(() => setUsage({ total: 1, month: 0, extra: 0 }))
+
   useEffect(() => {
-    let live = true
-    Promise.all([reportCount(), monthlyReportCount()])
-      .then(([total, month]) => { if (live) setUsage({ total, month }) })
-      .catch(() => { if (live) setUsage({ total: 1, month: 0 }) })
-    return () => { live = false }
+    const params = new URLSearchParams(window.location.search)
+    const sid = params.get('session_id')
+    if (params.get('pack') === '1' && sid) {
+      // Returned from an add-on pack purchase — confirm the session (server grants the credits), then refresh.
+      setRedeeming(true)
+      confirmCheckout(sid).catch(() => {}).finally(() => {
+        window.history.replaceState({}, '', '/app/new')
+        loadUsage().finally(() => setRedeeming(false))
+      })
+    } else {
+      loadUsage()
+    }
   }, [])
 
+  const extra = (usage && usage.extra) || 0
+  const effectiveCap = cap + extra
   const freeAvail = !!usage && usage.total === 0
-  const withinCap = !!plan && !!usage && usage.month < cap
+  const withinCap = !!plan && !!usage && usage.month < effectiveCap
   const canGenerate = freeAvail || withinCap
   const priceOk = !!String(form.purchasePrice).trim() || form.noPrice
+
+  const buyPack = (pack) => {
+    setPackBusy(pack); setError('')
+    startPackCheckout({ pack, email: user?.email, userId: user?.id })
+      .catch((e) => { setError((e && e.message) || 'Could not start checkout.'); setPackBusy('') })
+  }
 
   const buildIntake = () => ({
     address: form.address, city: form.city, state: form.state, zip: form.zip,
@@ -71,9 +94,13 @@ export default function NewDeal() {
   }
 
   const usageNote = () => {
+    if (redeeming) return 'Adding your add-on reports…'
     if (!usage) return 'Checking your plan…'
     if (freeAvail) return 'Your first report is on us — free, no card required.'
-    if (plan) return `${usage.month} of ${cap} reports used this month on ${plan.name}.`
+    if (plan) {
+      const line = `${usage.month} of ${effectiveCap} reports used this month on ${plan.name}`
+      return extra > 0 ? `${line} — includes ${extra} add-on.` : `${line}.`
+    }
     return 'Your free report has been used. Choose a plan to keep analyzing deals.'
   }
 
@@ -190,11 +217,24 @@ export default function NewDeal() {
               <textarea rows={3} className="input" placeholder="Anything specific you want the report to weigh?" value={form.notes} onChange={set('notes')} />
             </Field>
 
-            {!canGenerate && usage && (
+            {!canGenerate && usage && plan && (
               <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-                {plan
-                  ? `You've used all ${cap} reports on ${plan.name} this month. Upgrade to a higher plan to run more — or they reset next month.`
-                  : 'Your free report has been used. Subscribe to a plan to keep running deal analyses.'}
+                <p className="font-semibold">You've used all {effectiveCap} reports on {plan.name} this month.</p>
+                <p className="mt-1">Grab an add-on pack to keep analyzing now, or upgrade your plan — either way your allowance resets next month.</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button type="button" disabled={!!packBusy} onClick={() => buyPack('pack-10')} className="btn-primary">
+                    {packBusy === 'pack-10' ? 'Redirecting…' : '+10 reports — $49'}
+                  </button>
+                  <button type="button" disabled={!!packBusy} onClick={() => buyPack('pack-25')} className="btn-secondary">
+                    {packBusy === 'pack-25' ? 'Redirecting…' : '+25 reports — $99'}
+                  </button>
+                  <Link to="/app/billing" className="btn-ghost">Upgrade plan</Link>
+                </div>
+              </div>
+            )}
+            {!canGenerate && usage && !plan && (
+              <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                Your free report has been used. Subscribe to a plan to keep running deal analyses.
               </div>
             )}
           </Fieldset>

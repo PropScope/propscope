@@ -94,6 +94,18 @@ export async function monthlyReportCount() {
   return count || 0
 }
 
+// Extra report credits the user bought this month (add-on packs). Stored in the
+// buyer's Supabase user_metadata by the server after a paid checkout; resets monthly.
+export async function getExtraCredits() {
+  try {
+    const { data } = await supabase.auth.getUser()
+    const meta = (data && data.user && data.user.user_metadata) || {}
+    const now = new Date()
+    const mk = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`
+    return meta.extra_credits_month === mk ? (Number(meta.extra_credits) || 0) : 0
+  } catch (e) { return 0 }
+}
+
 export async function listReports() {
   const { data, error } = await supabase.from('reports').select('*').order('created_at', { ascending: false })
   if (error) throw error
