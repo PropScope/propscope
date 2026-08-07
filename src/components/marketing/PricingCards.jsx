@@ -4,9 +4,12 @@ import { Check, Sparkles, Clock } from 'lucide-react'
 import { PLANS } from '../../lib/plans.js'
 import { usd } from '../../lib/format.js'
 import Reveal from '../ui/Reveal.jsx'
+import { useAuth } from '../../context/AuthContext.jsx'
 
 export default function PricingCards({ ctaTo = '/signup' }) {
   const [annual, setAnnual] = useState(true)
+  const { user, isAuthed } = useAuth()
+  const currentPlan = user?.plan
 
   return (
     <>
@@ -52,10 +55,24 @@ export default function PricingCards({ ctaTo = '/signup' }) {
                   {plan.reportsPerMonth} reports / month
                 </p>
 
-                <Link to={`${ctaTo}?plan=${plan.id}&billing=${annual ? 'year' : 'month'}`}
-                  className={`mt-6 btn-shine ${plan.highlight ? 'btn bg-emerald-500 text-white hover:bg-emerald-400' : 'btn-primary'} w-full`}>
-                  {plan.cta}
-                </Link>
+                {isAuthed ? (
+                  plan.id === currentPlan ? (
+                    <Link to="/app/billing"
+                      className={`mt-6 btn-secondary w-full ${plan.highlight ? 'bg-ink-800 text-ink-200 ring-ink-700 hover:bg-ink-700' : ''}`}>
+                      Your current plan
+                    </Link>
+                  ) : (
+                    <Link to="/app/billing"
+                      className={`mt-6 btn-shine ${plan.highlight ? 'btn bg-emerald-500 text-white hover:bg-emerald-400' : 'btn-primary'} w-full`}>
+                      Change to {plan.name}
+                    </Link>
+                  )
+                ) : (
+                  <Link to={`${ctaTo}?plan=${plan.id}&billing=${annual ? 'year' : 'month'}`}
+                    className={`mt-6 btn-shine ${plan.highlight ? 'btn bg-emerald-500 text-white hover:bg-emerald-400' : 'btn-primary'} w-full`}>
+                    {plan.cta}
+                  </Link>
+                )}
 
                 <ul className="mt-6 space-y-2.5 text-sm">
                   {plan.features.map((f) => (
