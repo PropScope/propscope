@@ -82,6 +82,33 @@ export default async function handler(req, res) {
     res.status(401).json({ error: 'Could not verify your session.' }); return
   }
 
+  // Admin maintenance action: set a user's plan flag (metadata-merged, never wipes other fields).
+  if (req.method === 'POST') {
+    const body = (req.body && typeof req.body === 'object') ? req.body : {}
+    if (body.action === 'set-plan') {
+      const VALID = ['free', 'deal-check', 'deal-analyzer', 'deal-pro', 'investor-pro']
+      const targetId = String(body.userId || '')
+      const plan = String(body.plan || '')
+      if (!targetId || !VALID.includes(plan)) { res.status(400).json({ error: 'Missing or invalid userId/plan.' }); return }
+      try {
+        const gr = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${targetId}`, { headers: { apikey: svc, Authorization: `Bearer ${svc}` } })
+        const cur = gr.ok ? await gr.json() : {}
+        const merged = Object.assign({}, cur.user_metadata || {}, { plan })
+        const pr = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${targetId}`, {
+          method: 'PUT',
+          headers: { apikey: svc, Authorization: `Bearer ${svc}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_metadata: merged }),
+        })
+        const j = await pr.json().catch(() => ({}))
+        if (!pr.ok) { res.status(400).json({ error: (j && j.msg) || 'Could not update plan.' }); return }
+        res.status(200).json({ ok: true, plan: (j.user_metadata && j.user_metadata.plan) || plan }); return
+      } catch (e) {
+        res.status(500).json({ error: 'Could not update plan.' }); return
+      }
+    }
+    res.status(400).json({ error: 'Unknown action.' }); return
+  }
+
   try {
     let users = []
     for (let page = 1; page <= 20; page++) {
