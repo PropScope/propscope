@@ -41,8 +41,7 @@ export default function Reports() {
 
   return (
     <>
-      <PageHeader title="Reports" subtitle="Every deal you've analyzed."
-        action={<Link to="/app/new" className="btn-primary"><FilePlus2 size={16} /> New analysis</Link>} />
+      <PageHeader title="Reports" subtitle="Every deal you've analyzed." />
 
       {showBanner && (
         <div className="mb-6 flex items-center justify-between rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800 ring-1 ring-emerald-100">

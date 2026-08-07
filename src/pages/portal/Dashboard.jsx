@@ -88,7 +88,6 @@ export default function Dashboard() {
       <PageHeader
         title={`Welcome back, ${user?.name?.split(' ')[0] || 'there'}`}
         subtitle="Here's what's happening across your deals."
-        action={<Link to="/app/new" className="btn-primary"><FilePlus2 size={16} /> New analysis</Link>}
       />
 
       <InstallAppCard />
