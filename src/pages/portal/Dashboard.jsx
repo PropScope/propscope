@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts'
 import { FilePlus2, TrendingUp, CheckCircle2, Clock, Loader2 } from 'lucide-react'
 import PageHeader from '../../components/portal/PageHeader.jsx'
+import InstallAppCard from '../../components/portal/InstallAppCard.jsx'
 import ReportCard from '../../components/portal/ReportCard.jsx'
 import Stat from '../../components/ui/Stat.jsx'
 import { useAuth } from '../../context/AuthContext.jsx'
@@ -89,6 +90,8 @@ export default function Dashboard() {
         subtitle="Here's what's happening across your deals."
         action={<Link to="/app/new" className="btn-primary"><FilePlus2 size={16} /> New analysis</Link>}
       />
+
+      <InstallAppCard />
 
       {reports.length === 0 ? (
         <div className="card grid place-items-center py-20 text-center">

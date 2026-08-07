@@ -21,3 +21,10 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js').catch(() => {})
   })
 }
+
+// Capture the browser's install prompt so the in-app "Install app" button can trigger it on demand.
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault()
+  window.__psInstallPrompt = e
+  window.dispatchEvent(new Event('ps-installable'))
+})
