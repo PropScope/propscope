@@ -94,6 +94,7 @@ export default async function handler(req, res) {
         const gr = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${targetId}`, { headers: { apikey: svc, Authorization: `Bearer ${svc}` } })
         const cur = gr.ok ? await gr.json() : {}
         const merged = Object.assign({}, cur.user_metadata || {}, { plan })
+        if (body.unlinkStripe) { merged.stripeCustomerId = ''; merged.subscriptionId = '' }
         const pr = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${targetId}`, {
           method: 'PUT',
           headers: { apikey: svc, Authorization: `Bearer ${svc}`, 'Content-Type': 'application/json' },
