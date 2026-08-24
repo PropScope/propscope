@@ -33,6 +33,13 @@ export default function Billing() {
           const r = await confirmCheckout(sid)
           if (r.status === 'complete' || r.paymentStatus === 'paid') {
             await updateBilling({ plan: boughtPlan || 'investor-pro', stripeCustomerId: r.customer || '', subscriptionId: r.subscription || '' })
+            // Meta Pixel: report the subscription as a purchase conversion (for ad optimization).
+            try {
+              if (window.fbq) {
+                const pl = planById(boughtPlan)
+                window.fbq('track', 'Purchase', { currency: 'USD', value: (pl && pl.monthly) || 0, content_name: (pl && pl.name) || boughtPlan || 'subscription' })
+              }
+            } catch (e) { /* noop */ }
             setNotice('success')
           } else setNotice('pending')
         } catch (e) { setErr((e && e.message) || 'Could not confirm your subscription.') }

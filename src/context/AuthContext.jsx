@@ -54,6 +54,8 @@ export function AuthProvider({ children }) {
       options: { data: { name, company, plan: 'free' } },
     })
     if (error) throw error
+    // Meta Pixel: count a new account as a registration conversion.
+    try { if (window.fbq) window.fbq('track', 'CompleteRegistration') } catch (e) { /* noop */ }
     // When email confirmation is required, no session is returned yet.
     return { needsConfirmation: !data.session }
   }, [])
