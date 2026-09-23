@@ -25,6 +25,7 @@ import Dashboard from './pages/portal/Dashboard.jsx'
 import NewDeal from './pages/portal/NewDeal.jsx'
 import Reports from './pages/portal/Reports.jsx'
 import ReportDetail from './pages/portal/ReportDetail.jsx'
+import Portfolio from './pages/portal/Portfolio.jsx'
 import Account from './pages/portal/Account.jsx'
 import Billing from './pages/portal/Billing.jsx'
 import Admin from './pages/portal/Admin.jsx'
@@ -77,6 +78,7 @@ export default function App() {
           <Route path="new" element={<NewDeal />} />
           <Route path="reports" element={<Reports />} />
           <Route path="reports/:id" element={<ReportDetail />} />
+          <Route path="portfolio" element={<Portfolio />} />
           <Route path="account" element={<Account />} />
           <Route path="billing" element={<Billing />} />
           <Route path="admin" element={<Admin />} />

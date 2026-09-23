@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Outlet, NavLink, Link, useNavigate } from 'react-router-dom'
 import {
-  LayoutDashboard, FilePlus2, FileBarChart2, CreditCard, User2,
+  LayoutDashboard, FilePlus2, FileBarChart2, Building2, CreditCard, User2,
   LogOut, Menu, X, Plus, Sparkles, ShieldCheck,
 } from 'lucide-react'
 import Logo from '../ui/Logo.jsx'
@@ -14,6 +14,7 @@ const nav = [
   { to: '/app', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/app/new', label: 'New analysis', icon: FilePlus2 },
   { to: '/app/reports', label: 'Reports', icon: FileBarChart2 },
+  { to: '/app/portfolio', label: 'Portfolio', icon: Building2 },
   { to: '/app/billing', label: 'Billing', icon: CreditCard },
   { to: '/app/account', label: 'Account', icon: User2 },
 ]
