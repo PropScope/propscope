@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
+import { ExternalLink } from 'lucide-react'
 
-// Vite exposes this to the browser (must be prefixed VITE_).
-const EMBED_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY
-
-// Interactive, draggable Street View when coverage + a client key exist.
-// Falls back to the static photo (satellite where no street view) otherwise.
+// Show the reliable server-proxied property photo (Street View where available,
+// satellite otherwise). Because it is proxied through our own /api, it renders even
+// when the visitor's network/extensions block google.com directly. When Street View
+// coverage exists we add a button that opens the full interactive view on Google Maps
+// in a new tab — more reliable than an embedded Maps iframe.
 export default function StreetViewEmbed({ address, fallbackUrl }) {
   const [geo, setGeo] = useState(null)
   const [imgFailed, setImgFailed] = useState(false)
@@ -20,32 +21,28 @@ export default function StreetViewEmbed({ address, fallbackUrl }) {
     return () => { live = false }
   }, [address])
 
-  if (EMBED_KEY && geo && geo.status === 'OK') {
-    const src = `https://www.google.com/maps/embed/v1/streetview?key=${EMBED_KEY}` +
-      `&location=${geo.lat},${geo.lng}&heading=0&pitch=0&fov=90`
-    return (
-      <div className="mb-5 overflow-hidden rounded-xl ring-1 ring-ink-100">
-        <iframe
-          title="Property Street View"
-          src={src}
-          loading="lazy"
-          allowFullScreen
-          referrerPolicy="no-referrer-when-downgrade"
-          className="block h-72 w-full border-0"
-        />
-      </div>
-    )
-  }
+  if (!fallbackUrl || imgFailed) return null
 
-  if (fallbackUrl && !imgFailed) {
-    return (
+  const svLink = geo && geo.status === 'OK'
+    ? `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${geo.lat},${geo.lng}`
+    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address || '')}`
+
+  return (
+    <div className="relative mb-5 overflow-hidden rounded-xl ring-1 ring-ink-100">
       <img
         src={fallbackUrl}
         alt={address}
         onError={() => setImgFailed(true)}
-        className="mb-5 block h-72 w-full rounded-xl object-cover object-center ring-1 ring-ink-100 bg-ink-50"
+        className="block h-72 w-full bg-ink-50 object-cover object-center"
       />
-    )
-  }
-  return null
+      <a
+        href={svLink}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="absolute bottom-3 right-3 inline-flex items-center gap-1.5 rounded-lg bg-white/95 px-3 py-1.5 text-xs font-semibold text-ink-800 shadow ring-1 ring-ink-200 hover:bg-white"
+      >
+        <ExternalLink size={13} /> {geo && geo.status === 'OK' ? 'Open Street View' : 'View on Google Maps'}
+      </a>
+    </div>
+  )
 }
