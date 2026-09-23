@@ -227,12 +227,18 @@ export default function ReportDetail() {
             <EditNum label="Monthly rent" value={form.monthlyRent} onChange={(v) => setForm((f) => ({ ...f, monthlyRent: v }))} />
           </div>
 
-          <div className="mt-5 text-xs font-semibold uppercase tracking-wide text-ink-400">Financing terms</div>
-          <div className="mt-2 grid gap-4 sm:grid-cols-3">
-            <EditNum label="Interest rate" value={form.ratePct} onChange={(v) => setForm((f) => ({ ...f, ratePct: v }))} prefix="" suffix="%" />
-            <EditNum label="Down payment" value={form.downPct} onChange={(v) => setForm((f) => ({ ...f, downPct: v }))} prefix="" suffix="%" />
-            <EditNum label="Loan term" value={form.termYears} onChange={(v) => setForm((f) => ({ ...f, termYears: v }))} prefix="" suffix="yrs" />
-          </div>
+          {isPro && (
+            <>
+              <div className="mt-5 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-ink-400">
+                Financing terms <span className="badge bg-brand-50 normal-case text-brand-700">Deal Pro</span>
+              </div>
+              <div className="mt-2 grid gap-4 sm:grid-cols-3">
+                <EditNum label="Interest rate" value={form.ratePct} onChange={(v) => setForm((f) => ({ ...f, ratePct: v }))} prefix="" suffix="%" />
+                <EditNum label="Down payment" value={form.downPct} onChange={(v) => setForm((f) => ({ ...f, downPct: v }))} prefix="" suffix="%" />
+                <EditNum label="Loan term" value={form.termYears} onChange={(v) => setForm((f) => ({ ...f, termYears: v }))} prefix="" suffix="yrs" />
+              </div>
+            </>
+          )}
 
           <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <Stat label="Max allowable offer" value={usd(calc.mao)} />
@@ -240,7 +246,7 @@ export default function ReportDetail() {
             <Stat label="Cap rate" value={pct(calc.capRate)} />
             <Stat label="Cash-on-cash" value={pct(calc.cashOnCash)} tone="positive" />
           </div>
-          <p className="mt-3 text-xs text-ink-400">Recalculated instantly from your numbers and financing terms. Leave the financing fields at the defaults (20% down, 7%, 30-yr) or enter your real loan. Comps stay as originally pulled.</p>
+          <p className="mt-3 text-xs text-ink-400">Recalculated instantly. Uses standard financing (20% down, 7%, 30-yr){isPro ? ' unless you set your own terms above' : ' — Deal Pro members can enter their own loan terms'}. Comps stay as originally pulled.</p>
           {saveErr && <div className="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm text-rose-700">{saveErr}</div>}
           <div className="mt-4 flex items-center gap-2">
             <button onClick={saveEdit} disabled={saving} className="btn-primary">

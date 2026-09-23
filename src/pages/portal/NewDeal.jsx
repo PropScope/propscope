@@ -14,6 +14,7 @@ export default function NewDeal() {
   const nav = useNavigate()
   const { user } = useAuth()
   const plan = planById(user?.plan)
+  const isPro = ['deal-pro', 'investor-pro'].includes(user?.plan)
   const cap = capForPlan(user?.plan)
   const [step, setStep] = useState(0)
   const [submitting, setSubmitting] = useState(false)
@@ -170,14 +171,16 @@ export default function NewDeal() {
               <Field label="Expected monthly rent"><input className="input" placeholder="Estimate for me" value={form.rent} onChange={set('rent')} /></Field>
             </div>
 
-            <div className="mt-5">
-              <label className="label">Financing <span className="font-normal text-ink-400">— optional; defaults to 20% down, 7%, 30-yr</span></label>
-              <div className="mt-1 grid gap-4 sm:grid-cols-3">
-                <div className="flex items-center gap-2"><input className="input" placeholder="7" inputMode="decimal" value={form.ratePct} onChange={set('ratePct')} /><span className="shrink-0 text-sm text-ink-400">% rate</span></div>
-                <div className="flex items-center gap-2"><input className="input" placeholder="20" inputMode="decimal" value={form.downPct} onChange={set('downPct')} /><span className="shrink-0 text-sm text-ink-400">% down</span></div>
-                <div className="flex items-center gap-2"><input className="input" placeholder="30" inputMode="decimal" value={form.termYears} onChange={set('termYears')} /><span className="shrink-0 text-sm text-ink-400">yr term</span></div>
+            {isPro && (
+              <div className="mt-5">
+                <label className="label flex items-center gap-2">Financing terms <span className="badge bg-brand-50 text-brand-700">Deal Pro</span> <span className="font-normal text-ink-400">— optional; defaults to 20% down, 7%, 30-yr</span></label>
+                <div className="mt-1 grid gap-4 sm:grid-cols-3">
+                  <div className="flex items-center gap-2"><input className="input" placeholder="7" inputMode="decimal" value={form.ratePct} onChange={set('ratePct')} /><span className="shrink-0 text-sm text-ink-400">% rate</span></div>
+                  <div className="flex items-center gap-2"><input className="input" placeholder="20" inputMode="decimal" value={form.downPct} onChange={set('downPct')} /><span className="shrink-0 text-sm text-ink-400">% down</span></div>
+                  <div className="flex items-center gap-2"><input className="input" placeholder="30" inputMode="decimal" value={form.termYears} onChange={set('termYears')} /><span className="shrink-0 text-sm text-ink-400">yr term</span></div>
+                </div>
               </div>
-            </div>
+            )}
 
             <div className="mt-5">
               <label className="label">Property condition — how much work does it need?</label>
