@@ -29,6 +29,7 @@ The downloadable investor PDF includes the full financial breakdown for everyone
 
 === PORTFOLIO DASHBOARD (Investor Pro only) ===
 Investor Pro members get a Portfolio dashboard that rolls up every deal they have already analyzed into one view: total monthly cash flow if all deals were held, total equity created, total cash invested, average PropScope Score, average cap rate, cash-on-cash and DSCR, a count of how many deals are "on target," a Strong/Moderate/Thin quality mix, and a table of every property linking to its report. It only summarizes reports you have already run — it never uses up any of your monthly report allowance.
+The Portfolio page also includes a Buy Box: Investor Pro members set their target criteria once (minimum monthly cash flow, cash-on-cash, cap rate, DSCR, PropScope score, a maximum purchase price, and preferred markets/states), and every report they have already run is automatically scored as "Fits" or "off" the buy box. Fit shows in the Portfolio deals table (with a filter to show only deals that fit) and as a badge on each report page. Auto-scoring only evaluates reports you have already run and never uses up any report allowance.
 
 === SALE PRICE / "I DON'T KNOW" ===
 When starting a New Analysis you either enter the asking or sale price, or check "I don't know" so PropScope proceeds without it. This just helps frame the deal; you can always edit numbers later.
