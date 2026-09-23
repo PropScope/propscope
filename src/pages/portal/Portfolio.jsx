@@ -1,11 +1,12 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { Building2, Target, Lock, Loader2, ArrowRight, Wallet, TrendingUp } from 'lucide-react'
+import { Building2, Target, Lock, Loader2, ArrowRight, Wallet, Save, SlidersHorizontal } from 'lucide-react'
 import PageHeader from '../../components/portal/PageHeader.jsx'
 import Stat from '../../components/ui/Stat.jsx'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { listReports } from '../../lib/reports.js'
 import { recompute } from '../../lib/underwrite.js'
+import { DEFAULT_BUYBOX, scoreDeal, hasBuyBox } from '../../lib/buybox.js'
 import { usd, compactUsd, pct } from '../../lib/format.js'
 
 const n = (v) => Number(v) || 0
@@ -13,10 +14,15 @@ const avg = (arr) => (arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length :
 const xfmt = (v) => `${(Number(v) || 0).toFixed(2)}×`
 
 export default function Portfolio() {
-  const { user } = useAuth()
+  const { user, saveBuyBox } = useAuth()
   const isInvestorPro = user?.plan === 'investor-pro'
+  const savedBuyBox = user?.buyBox || null
   const [reports, setReports] = useState([])
   const [loading, setLoading] = useState(true)
+  const [bb, setBb] = useState(user?.buyBox || DEFAULT_BUYBOX)
+  const [savingBB, setSavingBB] = useState(false)
+  const [bbMsg, setBbMsg] = useState('')
+  const [onlyFits, setOnlyFits] = useState(false)
 
   useEffect(() => {
     if (!isInvestorPro) { setLoading(false); return }
@@ -37,13 +43,15 @@ export default function Portfolio() {
           purchasePrice: n(r.purchasePrice), arv: n(r.arv), rehab: n(r.rehab), monthlyRent: n(r.monthlyRent),
           rate: r.rate, downPct: r.downPct, termYears: r.termYears, expenseRatio: r.expenseRatio,
         })
-        return { r, uw, onTarget: uw.monthlyCashFlow >= 0 && uw.dscr >= 1.25 }
+        return { r, uw, onTarget: uw.monthlyCashFlow >= 0 && uw.dscr >= 1.25, fit: scoreDeal(uw, r, savedBuyBox) }
       })
-  ), [reports])
+  ), [reports, savedBuyBox])
 
   const agg = useMemo(() => ({
     count: rows.length,
     onTarget: rows.filter((x) => x.onTarget).length,
+    fits: rows.filter((x) => x.fit && x.fit.fits).length,
+    scored: rows.filter((x) => x.fit).length,
     avgScore: Math.round(avg(rows.map((x) => n(x.r.score)).filter((s) => s > 0))),
     totalCashFlow: rows.reduce((a, x) => a + x.uw.monthlyCashFlow, 0),
     totalValueCreated: rows.reduce((a, x) => a + x.uw.valueCreated, 0),
@@ -58,6 +66,13 @@ export default function Portfolio() {
     rows.forEach((x) => { if (c[x.r.verdict] != null) c[x.r.verdict]++ })
     return c
   }, [rows])
+
+  const onSaveBuyBox = async () => {
+    setSavingBB(true); setBbMsg('')
+    try { await saveBuyBox(bb); setBbMsg('Saved — your deals are re-scored below.') }
+    catch (e) { setBbMsg((e && e.message) || 'Could not save your buy box.') }
+    finally { setSavingBB(false) }
+  }
 
   // Gate: Investor Pro only.
   if (!isInvestorPro) return (
@@ -117,6 +132,35 @@ export default function Portfolio() {
         <Stat label="Avg. DSCR" value={xfmt(agg.avgDscr)} sub="Target 1.25+" />
       </div>
 
+      {/* Buy box + auto-scoring */}
+      <div className="mt-6 card p-6">
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+          <h3 className="flex items-center gap-2 font-semibold text-ink-900"><SlidersHorizontal size={18} className="text-brand-600" /> Your buy box</h3>
+          {savedBuyBox && hasBuyBox(savedBuyBox) && (
+            <span className="text-sm font-medium text-ink-500">{agg.fits} of {agg.scored} deals fit your box</span>
+          )}
+        </div>
+        <p className="mt-1 text-sm text-ink-500">Set your target criteria once — every deal you've analyzed is auto-scored against it. Leave a field blank to ignore it. No reports are used.</p>
+        <div className="mt-4 grid gap-4 sm:grid-cols-3 lg:grid-cols-4">
+          <BBNum label="Min monthly cash flow" prefix="$" value={bb.minCashFlow} onChange={(v) => setBb((s) => ({ ...s, minCashFlow: v }))} />
+          <BBNum label="Min cash-on-cash" suffix="%" value={bb.minCashOnCash} onChange={(v) => setBb((s) => ({ ...s, minCashOnCash: v }))} />
+          <BBNum label="Min cap rate" suffix="%" value={bb.minCapRate} onChange={(v) => setBb((s) => ({ ...s, minCapRate: v }))} />
+          <BBNum label="Min DSCR" suffix="×" value={bb.minDscr} onChange={(v) => setBb((s) => ({ ...s, minDscr: v }))} />
+          <BBNum label="Min PropScope score" value={bb.minScore} onChange={(v) => setBb((s) => ({ ...s, minScore: v }))} />
+          <BBNum label="Max purchase price" prefix="$" value={bb.maxPrice} onChange={(v) => setBb((s) => ({ ...s, maxPrice: v }))} />
+          <div>
+            <label className="text-xs font-medium text-ink-500">Markets (states)</label>
+            <input className="input mt-1" placeholder="Any — e.g. NJ, PA" value={bb.states} onChange={(e) => setBb((s) => ({ ...s, states: e.target.value }))} />
+          </div>
+        </div>
+        <div className="mt-4 flex items-center gap-3">
+          <button onClick={onSaveBuyBox} disabled={savingBB} className="btn-primary">
+            {savingBB ? <><Loader2 size={16} className="animate-spin" /> Saving…</> : <><Save size={16} /> Save buy box</>}
+          </button>
+          {bbMsg && <span className="text-sm text-ink-500">{bbMsg}</span>}
+        </div>
+      </div>
+
       {/* Deal quality mix */}
       <div className="mt-6 card p-6">
         <h3 className="flex items-center gap-2 font-semibold text-ink-900"><Target size={18} className="text-brand-600" /> Deal quality mix</h3>
@@ -133,7 +177,15 @@ export default function Portfolio() {
 
       {/* Holdings table */}
       <div className="mt-6 card p-6">
-        <h3 className="flex items-center gap-2 font-semibold text-ink-900"><Wallet size={18} className="text-brand-600" /> All deals</h3>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <h3 className="flex items-center gap-2 font-semibold text-ink-900"><Wallet size={18} className="text-brand-600" /> All deals</h3>
+          {savedBuyBox && hasBuyBox(savedBuyBox) && (
+            <label className="flex cursor-pointer select-none items-center gap-2 text-sm text-ink-600">
+              <input type="checkbox" checked={onlyFits} onChange={(e) => setOnlyFits(e.target.checked)} className="h-4 w-4 rounded border-ink-300 text-brand-600 focus:ring-brand-500" />
+              Only deals that fit my box
+            </label>
+          )}
+        </div>
         <div className="mt-4 overflow-x-auto">
           <table className="w-full min-w-[720px] text-sm">
             <thead>
@@ -146,10 +198,11 @@ export default function Portfolio() {
                 <th className="py-2 text-right font-medium">Monthly CF</th>
                 <th className="py-2 text-right font-medium">Equity created</th>
                 <th className="py-2 text-right font-medium">Verdict</th>
+                <th className="py-2 text-right font-medium">Buy box</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-ink-50">
-              {rows.map(({ r, uw }) => (
+              {rows.filter((x) => !onlyFits || (x.fit && x.fit.fits)).map(({ r, uw, fit }) => (
                 <tr key={r.id} className="group">
                   <td className="py-3">
                     <Link to={`/app/reports/${r.id}`} className="font-medium text-ink-800 group-hover:text-brand-700">{r.address}</Link>
@@ -162,6 +215,13 @@ export default function Portfolio() {
                   <td className={`py-3 text-right font-semibold tabular-nums ${uw.monthlyCashFlow >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>{usd(uw.monthlyCashFlow)}</td>
                   <td className="py-3 text-right tabular-nums text-ink-700">{usd(uw.valueCreated)}</td>
                   <td className="py-3 text-right"><span className={`badge ${vBadge[r.verdict] || 'bg-ink-100 text-ink-500'}`}>{r.verdict || '—'}</span></td>
+                  <td className="py-3 text-right">
+                    {fit
+                      ? (fit.fits
+                          ? <span className="badge bg-emerald-50 text-emerald-700">Fits</span>
+                          : <span className="badge bg-ink-100 text-ink-500" title={`Off on: ${fit.fails.join(', ')}`}>{fit.fails.length} off</span>)
+                      : <span className="text-ink-300">—</span>}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -173,5 +233,22 @@ export default function Portfolio() {
         Rolled up from reports you've already run — no new reports are generated here. Figures use standard financing where a deal has no custom terms.
       </p>
     </>
+  )
+}
+
+function BBNum({ label, value, onChange, prefix = '', suffix = '' }) {
+  return (
+    <div>
+      <label className="text-xs font-medium text-ink-500">{label}</label>
+      <div className="mt-1 flex items-center gap-1 rounded-lg border border-ink-200 px-3 py-2 focus-within:ring-2 focus-within:ring-brand-500">
+        {prefix && <span className="text-sm text-ink-400">{prefix}</span>}
+        <input
+          type="number" inputMode="decimal" value={value ?? ''} placeholder="—"
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full bg-transparent text-sm font-semibold text-ink-900 outline-none"
+        />
+        {suffix && <span className="text-sm text-ink-400">{suffix}</span>}
+      </div>
+    </div>
   )
 }

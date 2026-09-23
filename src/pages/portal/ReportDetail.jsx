@@ -16,6 +16,7 @@ import { recompute, editPatch } from '../../lib/underwrite.js'
 import { downloadInvestorReport, downloadSellerSummary } from '../../lib/pdf.js'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { planById } from '../../lib/plans.js'
+import { scoreDeal, hasBuyBox } from '../../lib/buybox.js'
 import { usd, pct } from '../../lib/format.js'
 
 const riskTone = { Low: 'text-emerald-600 bg-emerald-50', Medium: 'text-amber-600 bg-amber-50', High: 'text-rose-600 bg-rose-50' }
@@ -106,6 +107,8 @@ export default function ReportDetail() {
     : { score: n(r.score), verdict: r.verdict, purchasePrice: n(r.purchasePrice), rehab: n(r.rehab), arv: n(r.arv) }
   const vb = VERDICT_BANNER[disp.verdict] || VERDICT_BANNER.Moderate
   const mao = editing ? calc.mao : Math.round(n(r.arv) * 0.7 - n(r.rehab))
+  const uwFull = recompute(editing ? calcInput(form) : { purchasePrice: n(r.purchasePrice), arv: n(r.arv), rehab: n(r.rehab), monthlyRent: n(r.monthlyRent), rate: r.rate, downPct: r.downPct, termYears: r.termYears, expenseRatio: r.expenseRatio })
+  const buyFit = (user?.plan === 'investor-pro' && hasBuyBox(user?.buyBox)) ? scoreDeal(uwFull, editing ? { ...r, ...calcInput(form) } : r, user.buyBox) : null
 
   const startEdit = () => {
     setForm({
@@ -184,6 +187,9 @@ export default function ReportDetail() {
               <div className="mt-2 flex flex-wrap gap-2 text-xs">
                 <span className="badge bg-ink-100 text-ink-600">{tier?.name}</span>
                 <span className="badge bg-brand-50 text-brand-700">{r.strategy}</span>
+                {buyFit && (buyFit.fits
+                  ? <span className="badge bg-emerald-50 text-emerald-700">Fits your buy box</span>
+                  : <span className="badge bg-ink-100 text-ink-500" title={`Off on: ${buyFit.fails.join(', ')}`}>Off your buy box</span>)}
                 {r.rehabScope && r.rehabScope !== 'ai' && (
                   <span className="badge bg-amber-50 text-amber-700">{r.rehabScope === 'gut' ? 'Full-gut' : r.rehabScope.charAt(0).toUpperCase() + r.rehabScope.slice(1)} rehab basis</span>
                 )}
