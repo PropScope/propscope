@@ -196,7 +196,7 @@ export default function ReportDetail() {
               <p className="mt-1 text-xs font-medium text-ink-500">PropScope Score</p>
             </div>
             <div className="flex flex-col gap-2">
-              <button onClick={() => downloadInvestorReport(r, { contact })} className="btn-primary"><Download size={16} /> PDF</button>
+              <button onClick={() => downloadInvestorReport(r, { contact, isPro })} className="btn-primary"><Download size={16} /> PDF</button>
               {!editing && <button onClick={startEdit} className="btn-secondary"><Pencil size={16} /> Edit numbers</button>}
               {!editing && <button onClick={() => { setDelText(''); setDelErr(''); setShowDelete(true) }} className="btn-secondary text-rose-600 hover:bg-rose-50"><Trash2 size={16} /> Delete</button>}
             </div>

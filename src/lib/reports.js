@@ -1,4 +1,5 @@
 import { supabase } from './supabase.js'
+import { recompute } from './underwrite.js'
 
 const THUMBS = ['#1d4ed8', '#0ea5e9', '#0d9488', '#1e40af', '#0369a1', '#075985']
 
@@ -24,6 +25,23 @@ export async function generateReport(input, { paid = false, replaceId = null } =
   }
   const ai = await res.json()
 
+  // If the user supplied their own financing terms, recompute the financing-dependent
+  // figures with the transparent model so every number on the report stays consistent.
+  let fin = {}
+  const hasFin = ['rate', 'downPct', 'termYears'].some((k) => input[k] !== undefined && input[k] !== null && input[k] !== '')
+  if (hasFin) {
+    const c = recompute({
+      purchasePrice: Number(ai.purchasePrice) || Number(input.purchasePrice) || 0,
+      arv: Number(ai.arv) || 0, rehab: Number(ai.rehab) || 0, monthlyRent: Number(ai.monthlyRent) || 0,
+      rate: input.rate, downPct: input.downPct, termYears: input.termYears,
+    })
+    fin = {
+      rate: c.rate, downPct: c.downPct, termYears: c.termYears,
+      monthlyCashFlow: c.monthlyCashFlow, capRate: c.capRate, cashOnCash: c.cashOnCash,
+      dscr: c.dscr, noiAnnual: c.noiAnnual, cashInvested: c.cashInvested, valueCreated: c.valueCreated,
+    }
+  }
+
   const bestStrategy = () => {
     const s = (ai.strategies || []).slice().sort((a, b) => (b.roi || 0) - (a.roi || 0))
     return s[0] && s[0].name
@@ -40,7 +58,7 @@ export async function generateReport(input, { paid = false, replaceId = null } =
     status: 'complete',
     score: Math.round(Number(ai.score) || 0),
     verdict: ai.verdict || 'Moderate',
-    data: { ...ai, rehabScope: input.rehabScope || 'ai', thumb: THUMBS[Math.floor(Math.random() * THUMBS.length)] },
+    data: { ...ai, ...fin, rehabScope: input.rehabScope || 'ai', thumb: THUMBS[Math.floor(Math.random() * THUMBS.length)] },
   }
 
   // Replace an existing report for the same address instead of piling up duplicates.

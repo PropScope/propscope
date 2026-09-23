@@ -25,6 +25,7 @@ export default function NewDeal() {
   const [form, setForm] = useState({
     address: '', city: '', state: '', zip: '', beds: '', baths: '', sqft: '', year: '',
     purchasePrice: '', rehab: '', rent: '', arv: '',
+    ratePct: '', downPct: '', termYears: '',
     strategy: 'BRRRR', notes: '', noPrice: false, rehabScope: 'moderate',
   })
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
@@ -68,6 +69,9 @@ export default function NewDeal() {
     address: form.address, city: form.city, state: form.state, zip: form.zip,
     beds: form.beds, baths: form.baths, sqft: form.sqft, year: form.year,
     purchasePrice: form.purchasePrice, rehab: form.rehab, rent: form.rent, arv: form.arv,
+    rate: form.ratePct === '' ? undefined : Number(form.ratePct) / 100,
+    downPct: form.downPct === '' ? undefined : Number(form.downPct) / 100,
+    termYears: form.termYears === '' ? undefined : Number(form.termYears),
     strategy: form.strategy, notes: form.notes, rehabScope: form.rehabScope,
     tier: plan ? plan.id : 'deal-check',
   })
@@ -164,6 +168,15 @@ export default function NewDeal() {
               <Field label="Estimated ARV"><input className="input" placeholder="Estimate for me" value={form.arv} onChange={set('arv')} /></Field>
               <Field label="Rehab budget"><input className="input" placeholder="Estimate for me" value={form.rehab} onChange={set('rehab')} /></Field>
               <Field label="Expected monthly rent"><input className="input" placeholder="Estimate for me" value={form.rent} onChange={set('rent')} /></Field>
+            </div>
+
+            <div className="mt-5">
+              <label className="label">Financing <span className="font-normal text-ink-400">— optional; defaults to 20% down, 7%, 30-yr</span></label>
+              <div className="mt-1 grid gap-4 sm:grid-cols-3">
+                <div className="flex items-center gap-2"><input className="input" placeholder="7" inputMode="decimal" value={form.ratePct} onChange={set('ratePct')} /><span className="shrink-0 text-sm text-ink-400">% rate</span></div>
+                <div className="flex items-center gap-2"><input className="input" placeholder="20" inputMode="decimal" value={form.downPct} onChange={set('downPct')} /><span className="shrink-0 text-sm text-ink-400">% down</span></div>
+                <div className="flex items-center gap-2"><input className="input" placeholder="30" inputMode="decimal" value={form.termYears} onChange={set('termYears')} /><span className="shrink-0 text-sm text-ink-400">yr term</span></div>
+              </div>
             </div>
 
             <div className="mt-5">

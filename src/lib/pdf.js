@@ -1,6 +1,7 @@
 import { jsPDF } from 'jspdf'
 import { reportDetail } from './mockData.js'
 import { planById } from './plans.js'
+import { recompute, grade, scenarioCompare } from './underwrite.js'
 import { usd, pct, dateFmt } from './format.js'
 
 // ---- palette ----
@@ -215,6 +216,48 @@ export async function downloadInvestorReport(r, opts = {}) {
     { label: 'Cash-on-cash', value: pct(n(r.cashOnCash)), accent: EMERALD7 },
   ])
 
+  // ---- Financial breakdown ----
+  const uw = recompute({ purchasePrice: n(r.purchasePrice), arv: n(r.arv), rehab: n(r.rehab), monthlyRent: n(r.monthlyRent), rate: r.rate, downPct: r.downPct, termYears: r.termYears, expenseRatio: r.expenseRatio })
+  y = sectionTitle(doc, y, 'Financial breakdown')
+  y = table(doc, y, [
+    { label: 'Deal structure', key: 'k', x: M, w: 360 },
+    { label: '', key: 'v', x: 408, w: 156, align: 'right' },
+  ], [
+    { k: 'Purchase price', v: usd(uw.purchasePrice) },
+    { k: 'Down payment', v: `${usd(uw.downPayment)} (${Math.round(uw.downPct * 100)}%)` },
+    { k: 'Loan amount', v: usd(uw.loan) },
+    { k: 'Interest rate', v: `${(uw.rate * 100).toFixed(2)}%` },
+    { k: 'Amortization', v: `${uw.termYears} years` },
+    { k: 'Closing costs (est.)', v: usd(uw.closingCosts) },
+    { k: 'Total cash invested', v: usd(uw.cashInvested) },
+  ])
+  y = table(doc, y, [
+    { label: 'Monthly cash flow', key: 'k', x: M, w: 360 },
+    { label: '', key: 'v', x: 408, w: 156, align: 'right' },
+  ], [
+    { k: 'Gross monthly rent', v: usd(uw.monthlyRent) },
+    { k: `Operating expenses (~${Math.round(uw.expenseRatio * 100)}%)`, v: `- ${usd(uw.opexMonthly)}` },
+    { k: 'Net operating income (NOI)', v: usd(uw.noiMonthly) },
+    { k: `Mortgage P&I (${(uw.rate * 100).toFixed(2)}%, ${uw.termYears}-yr)`, v: `- ${usd(uw.piMonthly)}` },
+    { k: 'Net monthly cash flow', v: `${uw.monthlyCashFlow >= 0 ? '+' : '-'} ${usd(Math.abs(uw.monthlyCashFlow))}` },
+  ])
+  const gStatus = { pass: 'On target', warn: 'Close', fail: 'Below target' }
+  y = table(doc, y, [
+    { label: 'Return metric', key: 'm', x: M, w: 200 },
+    { label: 'This deal', key: 'v', x: 300, w: 92, align: 'right' },
+    { label: 'Target', key: 't', x: 402, w: 78, align: 'right' },
+    { label: 'Status', key: 's', x: 490, w: 74, align: 'right' },
+  ], grade(uw).map((row) => ({
+    m: row.label,
+    v: row.fmt === 'usd' ? usd(row.value) : row.fmt === 'pct' ? pct(row.value) : `${Number(row.value).toFixed(2)}x`,
+    t: row.target, s: gStatus[row.status],
+  })))
+  y = metrics(doc, y, [
+    { label: 'Total cash invested', value: usd(uw.cashInvested) },
+    { label: 'Annual NOI', value: usd(uw.noiAnnual) },
+    { label: 'Value created', value: usd(uw.valueCreated), accent: EMERALD7 },
+  ])
+
   y = sectionTitle(doc, y, 'Strategy comparison')
   y = table(doc, y, [
     { label: 'Strategy', key: 'name', x: M, w: 240 },
@@ -261,7 +304,24 @@ export async function downloadInvestorReport(r, opts = {}) {
   })
   y += 6
 
-  if (r.tier === 'deal-intelligence') {
+  if (opts.isPro) {
+    const sc = scenarioCompare({ purchasePrice: n(r.purchasePrice), arv: n(r.arv), rehab: n(r.rehab), monthlyRent: n(r.monthlyRent), rate: r.rate, downPct: r.downPct, termYears: r.termYears, expenseRatio: r.expenseRatio })
+    y = sectionTitle(doc, y, 'Scenario compare — as listed vs. target price')
+    y = table(doc, y, [
+      { label: 'Metric', key: 'm', x: M, w: 260 },
+      { label: 'As listed', key: 'a', x: 360, w: 100, align: 'right' },
+      { label: 'At target', key: 'b', x: 470, w: 94, align: 'right' },
+    ], [
+      { m: 'Purchase price', a: usd(sc.base.purchasePrice), b: usd(sc.targetPrice) },
+      { m: 'Monthly cash flow', a: usd(sc.base.monthlyCashFlow), b: usd(sc.target.monthlyCashFlow) },
+      { m: 'Cash-on-cash', a: pct(sc.base.cashOnCash), b: pct(sc.target.cashOnCash) },
+      { m: 'Cap rate', a: pct(sc.base.capRate), b: pct(sc.target.capRate) },
+      { m: 'DSCR', a: `${sc.base.dscr.toFixed(2)}x`, b: `${sc.target.dscr.toFixed(2)}x` },
+      { m: 'Value created', a: usd(sc.base.valueCreated), b: usd(sc.target.valueCreated) },
+    ])
+  }
+
+  if (opts.isPro) {
     y = sectionTitle(doc, y, 'Executive memo')
     const memo = r.memo || `${r.address} presents a ${String(r.verdict || '').toLowerCase()} opportunity. Acquired at ${usd(n(r.purchasePrice))} with a ${usd(n(r.rehab))} renovation against a ${usd(n(r.arv))} ARV. Recommendation: proceed at or below the max allowable offer of ${usd(mao)}.`
     doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(...INK)
