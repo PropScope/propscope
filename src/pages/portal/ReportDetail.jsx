@@ -9,6 +9,7 @@ import {
 import ScoreRing from '../../components/ui/ScoreRing.jsx'
 import Stat from '../../components/ui/Stat.jsx'
 import StreetViewEmbed from '../../components/portal/StreetViewEmbed.jsx'
+import FinancialBreakdown from '../../components/portal/FinancialBreakdown.jsx'
 import { reportDetail } from '../../lib/mockData.js'
 import { getReport, listReports, updateReport, deleteReport } from '../../lib/reports.js'
 import { recompute, editPatch } from '../../lib/underwrite.js'
@@ -47,7 +48,7 @@ export default function ReportDetail() {
   const [includeRepairs, setIncludeRepairs] = useState(true)
   const [photoOk, setPhotoOk] = useState(true)
   const [editing, setEditing] = useState(false)
-  const [form, setForm] = useState({ purchasePrice: '', arv: '', rehab: '', monthlyRent: '' })
+  const [form, setForm] = useState({ purchasePrice: '', arv: '', rehab: '', monthlyRent: '', ratePct: '', downPct: '', termYears: '' })
   const [saving, setSaving] = useState(false)
   const [saveErr, setSaveErr] = useState('')
   const [showDelete, setShowDelete] = useState(false)
@@ -91,8 +92,15 @@ export default function ReportDetail() {
   )
 
   const tier = planById(r.tier)
+  const isPro = ['deal-pro', 'investor-pro'].includes(user?.plan)
   const d = reportDetail(r)
-  const calc = editing ? recompute(form) : null
+  const calcInput = (f) => ({
+    purchasePrice: n(f.purchasePrice), arv: n(f.arv), rehab: n(f.rehab), monthlyRent: n(f.monthlyRent),
+    rate: f.ratePct === '' || f.ratePct == null ? undefined : n(f.ratePct) / 100,
+    downPct: f.downPct === '' || f.downPct == null ? undefined : n(f.downPct) / 100,
+    termYears: f.termYears === '' || f.termYears == null ? undefined : n(f.termYears),
+  })
+  const calc = editing ? recompute(calcInput(form)) : null
   const disp = editing
     ? { score: calc.score, verdict: calc.verdict, purchasePrice: n(form.purchasePrice), rehab: n(form.rehab), arv: n(form.arv) }
     : { score: n(r.score), verdict: r.verdict, purchasePrice: n(r.purchasePrice), rehab: n(r.rehab), arv: n(r.arv) }
@@ -100,13 +108,18 @@ export default function ReportDetail() {
   const mao = editing ? calc.mao : Math.round(n(r.arv) * 0.7 - n(r.rehab))
 
   const startEdit = () => {
-    setForm({ purchasePrice: n(r.purchasePrice), arv: n(r.arv), rehab: n(r.rehab), monthlyRent: n(r.monthlyRent) })
+    setForm({
+      purchasePrice: n(r.purchasePrice), arv: n(r.arv), rehab: n(r.rehab), monthlyRent: n(r.monthlyRent),
+      ratePct: r.rate != null && r.rate !== '' ? +(Number(r.rate) * 100).toFixed(3) : 7,
+      downPct: r.downPct != null && r.downPct !== '' ? Math.round(Number(r.downPct) * 100) : 20,
+      termYears: r.termYears != null && r.termYears !== '' ? Number(r.termYears) : 30,
+    })
     setSaveErr(''); setEditing(true)
   }
   const saveEdit = async () => {
     setSaving(true); setSaveErr('')
     try {
-      const updated = await updateReport(r.id, editPatch(form))
+      const updated = await updateReport(r.id, editPatch(calcInput(form)))
       setR(updated); setEditing(false)
     } catch (e) {
       setSaveErr((e && e.message) || 'Could not save your changes.')
@@ -213,13 +226,21 @@ export default function ReportDetail() {
             <EditNum label="Rehab estimate" value={form.rehab} onChange={(v) => setForm((f) => ({ ...f, rehab: v }))} />
             <EditNum label="Monthly rent" value={form.monthlyRent} onChange={(v) => setForm((f) => ({ ...f, monthlyRent: v }))} />
           </div>
+
+          <div className="mt-5 text-xs font-semibold uppercase tracking-wide text-ink-400">Financing terms</div>
+          <div className="mt-2 grid gap-4 sm:grid-cols-3">
+            <EditNum label="Interest rate" value={form.ratePct} onChange={(v) => setForm((f) => ({ ...f, ratePct: v }))} prefix="" suffix="%" />
+            <EditNum label="Down payment" value={form.downPct} onChange={(v) => setForm((f) => ({ ...f, downPct: v }))} prefix="" suffix="%" />
+            <EditNum label="Loan term" value={form.termYears} onChange={(v) => setForm((f) => ({ ...f, termYears: v }))} prefix="" suffix="yrs" />
+          </div>
+
           <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <Stat label="Max allowable offer" value={usd(calc.mao)} />
             <Stat label="Monthly cash flow" value={usd(calc.monthlyCashFlow)} tone="positive" />
             <Stat label="Cap rate" value={pct(calc.capRate)} />
             <Stat label="Cash-on-cash" value={pct(calc.cashOnCash)} tone="positive" />
           </div>
-          <p className="mt-3 text-xs text-ink-400">Recalculated instantly using standard assumptions (20% down, 7% rate, 30-yr loan, ~40% operating expenses). Comps stay as originally pulled.</p>
+          <p className="mt-3 text-xs text-ink-400">Recalculated instantly from your numbers and financing terms. Leave the financing fields at the defaults (20% down, 7%, 30-yr) or enter your real loan. Comps stay as originally pulled.</p>
           {saveErr && <div className="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm text-rose-700">{saveErr}</div>}
           <div className="mt-4 flex items-center gap-2">
             <button onClick={saveEdit} disabled={saving} className="btn-primary">
@@ -240,6 +261,8 @@ export default function ReportDetail() {
           <Stat label="Cash-on-cash" value={pct(n(r.cashOnCash))} tone="positive" />
         </div>
       )}
+
+      <FinancialBreakdown report={editing ? { ...r, ...calcInput(form) } : r} isPro={isPro} />
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         {/* Strategy comparison */}
@@ -384,7 +407,7 @@ export default function ReportDetail() {
         <p className="mt-4 text-xs text-ink-400">Figures are estimates to support discussion — not a formal appraisal.</p>
       </div>
 
-      {tier?.id === 'deal-intelligence' && (
+      {isPro && (
         <div className="mt-6 card p-6">
           <h3 className="flex items-center gap-2 font-semibold text-ink-900"><FileText size={18} className="text-brand-600" /> Executive memo</h3>
           <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-ink-600">
@@ -430,17 +453,18 @@ function Back() {
   )
 }
 
-function EditNum({ label, value, onChange }) {
+function EditNum({ label, value, onChange, prefix = '$', suffix = '' }) {
   return (
     <div className="rounded-xl border border-brand-200 bg-brand-50/40 p-3">
       <label className="text-xs font-medium text-ink-500">{label}</label>
       <div className="mt-1 flex items-center gap-1">
-        <span className="text-ink-400">$</span>
+        {prefix && <span className="text-ink-400">{prefix}</span>}
         <input
-          type="number" inputMode="numeric" value={value}
+          type="number" inputMode="decimal" value={value}
           onChange={(e) => onChange(e.target.value)}
           className="w-full bg-transparent text-lg font-bold text-ink-900 outline-none"
         />
+        {suffix && <span className="text-sm text-ink-400">{suffix}</span>}
       </div>
     </div>
   )
