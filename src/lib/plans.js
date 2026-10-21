@@ -17,6 +17,7 @@ export const PLANS = [
       '3 full reports per month',
       'Real comps, ARV & rent estimate',
       'Max allowable offer & cash flow',
+      'Full financial breakdown — NOI, DSCR & cash flow',
       'Fix & flip, buy & hold & BRRRR',
       'Branded PDF reports',
     ],
@@ -57,6 +58,7 @@ export const PLANS = [
     features: [
       '100 full reports per month',
       'Everything in Deal Analyzer',
+      'Scenario Compare & custom financing terms',
       'Add-on report packs when you run low',
       'Priority support',
     ],
@@ -76,15 +78,15 @@ export const PLANS = [
     highlight: false,
     features: [
       'Up to 250 reports per month',
-      'Everything in Deal Analyzer',
+      'Everything in Deal Pro',
+      'Portfolio dashboard',
+      'Saved buy-box & auto-scoring',
       'Priority support',
       'Early access to new features',
     ],
     comingSoon: [
       'Team seats',
-      'Saved buy-box & auto-scoring',
       'Bulk CSV address import',
-      'Portfolio dashboard',
     ],
   },
 ]

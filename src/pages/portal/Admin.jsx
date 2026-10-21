@@ -8,7 +8,7 @@ import { isAdmin, getAdminOverview } from '../../lib/admin.js'
 import { usd, dateFmt } from '../../lib/format.js'
 import { planById } from '../../lib/plans.js'
 
-const TIER_LABEL = { 'deal-check': 'Deal Check', 'deal-analyzer': 'Deal Analyzer', 'deal-intelligence': 'Deal Intelligence' }
+const TIER_LABEL = { 'deal-check': 'Deal Check', 'deal-analyzer': 'Deal Analyzer', 'deal-pro': 'Deal Pro', 'investor-pro': 'Investor Pro' }
 const verdictTone = { Strong: 'text-emerald-600', Moderate: 'text-amber-600', Thin: 'text-rose-600' }
 
 function MiniBars({ data }) {
@@ -189,7 +189,7 @@ export default function Admin() {
         <div className="card p-6">
           <h3 className="font-semibold text-ink-900">Reports by tier</h3>
           <ul className="mt-4 space-y-3 text-sm">
-            {['deal-check', 'deal-analyzer', 'deal-intelligence'].map((t) => (
+            {['deal-check', 'deal-analyzer', 'deal-pro', 'investor-pro'].map((t) => (
               <li key={t} className="flex items-center justify-between">
                 <span className="text-ink-600">{TIER_LABEL[t]}</span>
                 <span className="font-semibold text-ink-900">{tiers[t] || 0}</span>

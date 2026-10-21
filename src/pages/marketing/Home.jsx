@@ -275,7 +275,7 @@ function SampleReport() {
           <div className="card overflow-hidden">
             <div className="flex items-center justify-between border-b border-ink-100 bg-white px-5 py-4">
               <div className="flex items-center gap-2 font-semibold">
-                <Building2 size={18} className="text-brand-600" /> Deal Intelligence Report
+                <Building2 size={18} className="text-brand-600" /> Investment Analysis Report
               </div>
               <span className="badge bg-brand-100 text-brand-700">RPT-1042</span>
             </div>

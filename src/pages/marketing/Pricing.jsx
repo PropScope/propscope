@@ -14,10 +14,10 @@ export default function Pricing() {
           <div className="mx-auto mb-12 max-w-2xl text-center">
             <span className="badge bg-white text-brand-700 ring-1 ring-inset ring-brand-200"><Zap size={13} className="text-brand-600" /> Simple, honest pricing</span>
             <h1 className="mt-5 text-4xl font-extrabold tracking-tight sm:text-5xl">
-              Pay per deal, or go <span className="text-gradient">unlimited</span>
+              Pricing that scales with your <span className="text-gradient">deal flow</span>
             </h1>
             <p className="mt-4 text-lg text-ink-500">
-              Start with a single report. Upgrade to Investor Pro when you're analyzing deals every week.
+              Start free with one report, then pick the plan that matches how many deals you run. Upgrade, downgrade, or cancel anytime.
             </p>
             <p className="mt-4 inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-1.5 text-sm font-semibold text-emerald-800 ring-1 ring-inset ring-emerald-100">
               <Star size={14} /> Your first report is free — no card required.
@@ -58,24 +58,28 @@ export default function Pricing() {
 
 function CompareTable() {
   const rows = [
-    ['Reports per month', '3', '25', '250'],
-    ['Full AI investment report', true, true, true],
-    ['Real comps, ARV & rent estimate', true, true, true],
-    ['Max allowable offer & cash flow', true, true, true],
-    ['Fix & flip, buy & hold & BRRRR', true, true, true],
-    ['Branded PDF reports', true, true, true],
-    ['Report history & dashboard', false, true, true],
-    ['Priority support', false, true, true],
-    ['Early access to new features', false, false, true],
-    ['Team seats', false, false, 'soon'],
-    ['Saved buy-box & auto-scoring', false, false, 'soon'],
-    ['Bulk CSV import', false, false, 'soon'],
-    ['Portfolio dashboard', false, false, 'soon'],
+    ['Reports per month', '3', '25', '100', '250'],
+    ['Full AI investment report', true, true, true, true],
+    ['Real comps, ARV & rent estimate', true, true, true, true],
+    ['Max allowable offer & cash flow', true, true, true, true],
+    ['Full financial breakdown (NOI, DSCR, cash-flow waterfall)', true, true, true, true],
+    ['Fix & flip, buy & hold & BRRRR', true, true, true, true],
+    ['Branded PDF reports', true, true, true, true],
+    ['Report history & dashboard', false, true, true, true],
+    ['Priority support', false, true, true, true],
+    ['Scenario Compare (as-listed vs. target price)', false, false, true, true],
+    ['Custom financing terms (rate, down, term)', false, false, true, true],
+    ['Executive memo', false, false, true, true],
+    ['Portfolio dashboard', false, false, false, true],
+    ['Saved buy-box & auto-scoring', false, false, false, true],
+    ['Early access to new features', false, false, false, true],
+    ['Team seats', false, false, false, 'soon'],
+    ['Bulk CSV import', false, false, false, 'soon'],
   ]
-  const cols = ['Deal Check', 'Deal Analyzer', 'Investor Pro']
+  const cols = ['Deal Check', 'Deal Analyzer', 'Deal Pro', 'Investor Pro']
   return (
     <div className="overflow-x-auto rounded-2xl ring-1 ring-ink-200">
-      <table className="w-full min-w-[640px] border-collapse text-sm">
+      <table className="w-full min-w-[760px] border-collapse text-sm">
         <thead>
           <tr className="bg-ink-50">
             <th className="py-4 pl-5 text-left font-semibold text-ink-900">Feature</th>

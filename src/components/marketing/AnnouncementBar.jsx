@@ -7,7 +7,7 @@ export default function AnnouncementBar() {
       <div className="container-x flex items-center justify-center gap-2 py-2 text-center text-xs sm:text-sm">
         <Sparkles size={14} className="text-brand-400 shrink-0" />
         <span className="text-ink-200">
-          New: <span className="font-semibold text-white">BRRRR analysis + executive memo</span> now in every Deal Intelligence report.
+          New: <span className="font-semibold text-white">Full financial breakdown</span> — NOI, DSCR &amp; cash-flow waterfall — now in every report.
         </span>
         <Link to="/pricing" className="hidden items-center gap-1 font-semibold text-brand-300 hover:text-brand-200 sm:inline-flex">
           See plans <ArrowRight size={13} />
